@@ -2,7 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/pages/components.dart';
 import 'package:clinicflow/main.dart';
 
-// Widget for upcoming appointments
+// Probably should turn this into stateless
 class UpcomingAppointment extends StatefulWidget {
   final String name;
   final DateTime date;
@@ -106,6 +106,7 @@ class _UpcomingAppointmentState extends State<UpcomingAppointment> {
   }
 }
 
+// Probably should turn this into stateless
 class Announcement extends StatefulWidget {
   final String title;
   final String description;

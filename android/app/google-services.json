@@ -9,7 +9,7 @@
       "client_info": {
         "mobilesdk_app_id": "1:680365532030:android:75366b43ee2e6a7e1c492f",
         "android_client_info": {
-          "package_name": "com.example.clinicflow"
+          "package_name": "co.caiot.clinicflow"
         }
       },
       "oauth_client": [],

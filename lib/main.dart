@@ -146,7 +146,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Multi-Page Stateful App',
+      title: 'ClinicFlow',
       theme: ThemeData(primarySwatch: Colors.blue),
       home: const HomePage(),
     );

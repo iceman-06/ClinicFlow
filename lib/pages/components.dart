@@ -54,6 +54,7 @@ abstract final class Colours {
 }
 
 // Makes making Text easier
+// Probably should turn this into stateless
 class BetterText extends StatefulWidget {
   final String text;
   final double? size;

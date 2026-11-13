@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.clinicflow"
+    namespace = "co.caiot.clinicflow"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "30.0.16248370"
 
