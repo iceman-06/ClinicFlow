@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "680365532030",
+    "project_id": "clinicflow-caiot",
+    "storage_bucket": "clinicflow-caiot.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:680365532030:android:75366b43ee2e6a7e1c492f",
+        "android_client_info": {
+          "package_name": "com.example.clinicflow"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBqLToFlayBZs9_uf8sfMwaoRXQyY3SQOk"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
