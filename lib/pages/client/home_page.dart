@@ -2,8 +2,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/pages/components.dart';
 import 'package:clinicflow/main.dart';
 
-// Probably should turn this into stateless
-class UpcomingAppointment extends StatefulWidget {
+class UpcomingAppointment extends StatelessWidget {
   final String name;
   final DateTime date;
   final Duration duration;
@@ -19,11 +18,6 @@ class UpcomingAppointment extends StatefulWidget {
     required this.status,
   });
 
-  @override
-  State<StatefulWidget> createState() => _UpcomingAppointmentState();
-}
-
-class _UpcomingAppointmentState extends State<UpcomingAppointment> {
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -47,16 +41,16 @@ class _UpcomingAppointmentState extends State<UpcomingAppointment> {
                       Text(
                         getTime(
                           timeOfDay: TimeOfDay(
-                            hour: widget.date.hour,
-                            minute: widget.date.minute,
+                            hour: date.hour,
+                            minute: date.minute,
                           ),
                         ),
                       ),
                       BetterText(
                         text: getTime(
                           timeOfDay: TimeOfDay(
-                            hour: widget.date.add(widget.duration).hour,
-                            minute: widget.date.add(widget.duration).minute,
+                            hour: date.add(duration).hour,
+                            minute: date.add(duration).minute,
                           ),
                         ),
                         size: 11.0,
@@ -73,10 +67,10 @@ class _UpcomingAppointmentState extends State<UpcomingAppointment> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Text(widget.name),
+                      Text(name),
                       BetterText(
                         text:
-                            "${getWeekDay(truncate: true, dateTime: widget.date)}, ${getDay(dateTime: widget.date)} ${getMonth(truncate: true, dateTime: widget.date)} • ${widget.description} • ${widget.duration.inMinutes} min",
+                            "${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • $description • ${duration.inMinutes} min",
                         size: 11.0,
                         colour: Color.fromARGB(255, 40, 40, 40),
                       ),
@@ -93,7 +87,7 @@ class _UpcomingAppointmentState extends State<UpcomingAppointment> {
                   Container(
                     alignment: Alignment.topCenter,
                     padding: EdgeInsets.symmetric(horizontal: 4.0),
-                    child: BetterText(text: widget.status, size: 12.0),
+                    child: BetterText(text: status, size: 12.0),
                   ),
                   Icon(Icons.keyboard_arrow_right),
                 ],
@@ -106,8 +100,7 @@ class _UpcomingAppointmentState extends State<UpcomingAppointment> {
   }
 }
 
-// Probably should turn this into stateless
-class Announcement extends StatefulWidget {
+class Announcement extends StatelessWidget {
   final String title;
   final String description;
   final Color colour;
@@ -120,28 +113,21 @@ class Announcement extends StatefulWidget {
   });
 
   @override
-  State<Announcement> createState() => _AnnouncementState();
-}
-
-class _AnnouncementState extends State<Announcement> {
-  @override
   Widget build(BuildContext context) {
     return Container(
       margin: EdgeInsets.symmetric(vertical: 4.0),
       padding: EdgeInsets.symmetric(horizontal: 24.0),
       decoration: ShapeDecoration(
-        color: widget.colour.withAlpha(
-          (widget.colour.a * 25).toInt(),
+        color: colour.withAlpha(
+          (colour.a * 25).toInt(),
         ), // Colours work very weirdly
-        shape: BoxBorder.fromLTRB(
-          left: BorderSide(color: widget.colour, width: 4.0),
-        ),
+        shape: BoxBorder.fromLTRB(left: BorderSide(color: colour, width: 4.0)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          BetterText(text: widget.title, weight: 600),
-          Text(widget.description),
+          BetterText(text: title, weight: 600),
+          Text(description),
         ],
       ),
     );
@@ -270,6 +256,39 @@ class _HomePageState extends State<HomePage> {
                     duration: Duration(minutes: 30),
                     description: "Specialist consultation",
                     status: "Confirmed",
+                  ),
+                ],
+              ),
+            ),
+            Container(
+              padding: EdgeInsets.all(12.0),
+              decoration: BoxDecoration(
+                border: Border.all(color: Colours.lightSmoke, width: 1.5),
+                borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                color: Colours.thinGreen,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  BetterText(text: "Available opening", weight: 600),
+                  BetterText(
+                    text: "Tue, 10 Nov • 09:00-09:30",
+                    weight: 600,
+                    size: 18.0,
+                  ),
+                  BetterText(
+                    text: "Bring your 12 Feb specialist appointment forward.",
+                  ),
+                  TextButton(
+                    onPressed: () {},
+                    style: TextButton.styleFrom(
+                      shape: RoundedRectangleBorder(
+                        side: BorderSide(color: Colours.lightSmoke, width: 1.5),
+                        borderRadius: BorderRadius.all(Radius.circular(6.0)),
+                      ),
+                      backgroundColor: Colors.white,
+                    ),
+                    child: BetterText(text: "Review opening", weight: 600),
                   ),
                 ],
               ),

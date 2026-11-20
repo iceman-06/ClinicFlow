@@ -8,7 +8,7 @@
 PRODUCT_NAME = clinicflow
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.clinicflow
+PRODUCT_BUNDLE_IDENTIFIER = co.caiot.clinicflow
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.

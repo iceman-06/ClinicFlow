@@ -1,4 +1,6 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:clinicflow/pages/client/home_page.dart';
+import 'package:clinicflow/pages/client/calender_page.dart';
 
 class NavigationFooter extends StatelessWidget {
   const NavigationFooter({super.key});
@@ -18,13 +20,17 @@ class NavigationFooter extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const HomePage()));
+            },
             icon: Icon(Icons.home, color: Colours.green),
             tooltip: "Home",
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarPage()));
+            },
             icon: Icon(Icons.calendar_month, color: Colours.green),
             tooltip: "Calender",
             iconSize: 40,
@@ -51,15 +57,17 @@ class NavigationFooter extends StatelessWidget {
 abstract final class Colours {
   static const Color green = Color.fromARGB(255, 16, 108, 103);
   static const Color eggWhite = Color.fromARGB(255, 224, 224, 224);
+  static const Color thinGreen = Color.fromARGB(255, 230, 242, 238);
+  static const Color lightSmoke = Color.fromARGB(255, 224, 224, 224);
 }
 
 // Makes making Text easier
-// Probably should turn this into stateless
-class BetterText extends StatefulWidget {
+class BetterText extends StatelessWidget {
   final String text;
   final double? size;
   final int? weight;
   final Color? colour;
+  final TextAlign? align;
 
   const BetterText({
     super.key,
@@ -67,22 +75,19 @@ class BetterText extends StatefulWidget {
     this.size,
     this.weight,
     this.colour,
+    this.align,
   });
 
   @override
-  State<StatefulWidget> createState() => _BetterTextState();
-}
-
-class _BetterTextState extends State<BetterText> {
-  @override
   Widget build(BuildContext context) {
     return Text(
-      widget.text,
+      text,
       style: TextStyle(
-        color: widget.colour ?? Colors.black,
-        fontSize: widget.size ?? 14.0,
-        fontWeight: FontWeight(widget.weight ?? 400),
+        color: colour ?? Colors.black,
+        fontSize: size ?? 14.0,
+        fontWeight: FontWeight(weight ?? 400),
       ),
+      textAlign: align ?? TextAlign.start,
     );
   }
 }

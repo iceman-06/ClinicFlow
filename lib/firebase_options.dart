@@ -63,7 +63,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '680365532030',
     projectId: 'clinicflow-caiot',
     storageBucket: 'clinicflow-caiot.firebasestorage.app',
-    iosBundleId: 'com.example.clinicflow',
+    iosBundleId: 'co.caiot.clinicflow',
   );
 
   static const FirebaseOptions macos = FirebaseOptions(
@@ -72,7 +72,7 @@ class DefaultFirebaseOptions {
     messagingSenderId: '680365532030',
     projectId: 'clinicflow-caiot',
     storageBucket: 'clinicflow-caiot.firebasestorage.app',
-    iosBundleId: 'com.example.clinicflow',
+    iosBundleId: 'co.caiot.clinicflow',
   );
 
   static const FirebaseOptions windows = FirebaseOptions(
