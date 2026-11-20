@@ -1,6 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/pages/components.dart';
-import 'package:clinicflow/main.dart';
+import 'package:clinicflow/models/account.dart';
 
 class UpcomingAppointment extends StatelessWidget {
   final String name;
@@ -20,19 +20,16 @@ class UpcomingAppointment extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.symmetric(vertical: 12.0),
-      // IntrinsicHeight is used to allows VerticalDivider to work & to fix alignment
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
       child: IntrinsicHeight(
-        // Stack & Align are used to allow overlapping
         child: Stack(
           alignment: Alignment.center,
           children: [
             Align(
               alignment: Alignment.centerLeft,
               child: Row(
-                mainAxisSize:
-                    MainAxisSize.min, // Shrinks Row to fit its content
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,11 +51,11 @@ class UpcomingAppointment extends StatelessWidget {
                           ),
                         ),
                         size: 11.0,
-                        colour: Color.fromARGB(255, 40, 40, 40),
+                        colour: const Color.fromARGB(255, 40, 40, 40),
                       ),
                     ],
                   ),
-                  VerticalDivider(
+                  const VerticalDivider(
                     thickness: 1.5,
                     width: 30.0,
                     color: Colours.eggWhite,
@@ -72,7 +69,7 @@ class UpcomingAppointment extends StatelessWidget {
                         text:
                             "${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • $description • ${duration.inMinutes} min",
                         size: 11.0,
-                        colour: Color.fromARGB(255, 40, 40, 40),
+                        colour: const Color.fromARGB(255, 40, 40, 40),
                       ),
                     ],
                   ),
@@ -84,12 +81,11 @@ class UpcomingAppointment extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Container(
-                    alignment: Alignment.topCenter,
-                    padding: EdgeInsets.symmetric(horizontal: 4.0),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 4.0),
                     child: BetterText(text: status, size: 12.0),
                   ),
-                  Icon(Icons.keyboard_arrow_right),
+                  const Icon(Icons.keyboard_arrow_right),
                 ],
               ),
             ),
@@ -115,12 +111,10 @@ class Announcement extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: EdgeInsets.symmetric(vertical: 4.0),
-      padding: EdgeInsets.symmetric(horizontal: 24.0),
+      margin: const EdgeInsets.symmetric(vertical: 4.0),
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
       decoration: ShapeDecoration(
-        color: colour.withAlpha(
-          (colour.a * 25).toInt(),
-        ), // Colours work very weirdly
+        color: colour.withAlpha((colour.a * 25).toInt()),
         shape: BoxBorder.fromLTRB(left: BorderSide(color: colour, width: 4.0)),
       ),
       child: Column(
@@ -149,18 +143,21 @@ class _HomePageState extends State<HomePage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Home', size: 30.0),
-            CircleAvatar(backgroundColor: Colours.eggWhite, child: Text("JD")),
+            const BetterText(text: 'Home', size: 30.0),
+            CircleAvatar(
+              backgroundColor: Colours.eggWhite,
+              child: Text(currentAccount.initials),
+            ),
           ],
         ),
       ),
-      body: Container(
-        padding: EdgeInsets.all(16.0),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 6.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -176,10 +173,10 @@ class _HomePageState extends State<HomePage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      BetterText(text: "Virtual check-in", weight: 600),
+                      const BetterText(text: "Virtual check-in", weight: 600),
                       TextButton(
                         onPressed: () {},
-                        child: BetterText(
+                        child: const BetterText(
                           text: "Available now",
                           colour: Colours.green,
                         ),
@@ -192,8 +189,8 @@ class _HomePageState extends State<HomePage> {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          BetterText(text: "Jamie Chen", weight: 600),
-                          Text("Follow-up appointment • 14:30-15:00"),
+                          const BetterText(text: "Jamie Chen", weight: 600),
+                          const Text("Follow-up appointment • 14:30-15:00"),
                         ],
                       ),
                       FilledButton(
@@ -201,7 +198,7 @@ class _HomePageState extends State<HomePage> {
                         style: FilledButton.styleFrom(
                           backgroundColor: Colours.green,
                         ),
-                        child: BetterText(
+                        child: const BetterText(
                           text: "Check in",
                           colour: Colors.white,
                         ),
@@ -211,13 +208,13 @@ class _HomePageState extends State<HomePage> {
                 ],
               ),
             ),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 6.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BetterText(text: "Announcements", size: 22.0, weight: 600),
-                  Announcement(
+                  const BetterText(text: "Announcements", size: 22.0, weight: 600),
+                  const Announcement(
                     title: "Appointment in 20 minutes",
                     description: "Jamie Chen • Today, 14:30-15:00",
                     colour: Colours.green,
@@ -225,35 +222,35 @@ class _HomePageState extends State<HomePage> {
                   Announcement(
                     title: "Medication reminder",
                     description: "Remember to follow your prescribed schedule",
-                    colour: Color.fromARGB(255, 160, 78, 57),
+                    colour: const Color.fromARGB(255, 160, 78, 57),
                   ),
                 ],
               ),
             ),
-            Container(
-              padding: EdgeInsets.symmetric(vertical: 6.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  BetterText(text: "Upcoming", size: 22.0, weight: 600),
+                  const BetterText(text: "Upcoming", size: 22.0, weight: 600),
                   UpcomingAppointment(
                     name: "Jamie Chen",
                     date: DateTime(2026, 11, 9, 14, 30),
-                    duration: Duration(minutes: 30),
+                    duration: const Duration(minutes: 30),
                     description: "Follow-up",
                     status: "Upcoming",
                   ),
                   UpcomingAppointment(
                     name: "Daniel Chen",
                     date: DateTime(2026, 11, 10, 10, 0),
-                    duration: Duration(minutes: 45),
+                    duration: const Duration(minutes: 45),
                     description: "Initial consultation",
                     status: "Upcoming",
                   ),
                   UpcomingAppointment(
                     name: "Jamie Chen",
                     date: DateTime(2027, 2, 12, 11, 0),
-                    duration: Duration(minutes: 30),
+                    duration: const Duration(minutes: 30),
                     description: "Specialist consultation",
                     status: "Confirmed",
                   ),
@@ -261,34 +258,34 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             Container(
-              padding: EdgeInsets.all(12.0),
+              padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 border: Border.all(color: Colours.lightSmoke, width: 1.5),
-                borderRadius: BorderRadius.all(Radius.circular(10.0)),
+                borderRadius: const BorderRadius.all(Radius.circular(10.0)),
                 color: Colours.thinGreen,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  BetterText(text: "Available opening", weight: 600),
-                  BetterText(
+                  const BetterText(text: "Available opening", weight: 600),
+                  const BetterText(
                     text: "Tue, 10 Nov • 09:00-09:30",
                     weight: 600,
                     size: 18.0,
                   ),
-                  BetterText(
+                  const BetterText(
                     text: "Bring your 12 Feb specialist appointment forward.",
                   ),
                   TextButton(
                     onPressed: () {},
                     style: TextButton.styleFrom(
-                      shape: RoundedRectangleBorder(
+                      shape: const RoundedRectangleBorder(
                         side: BorderSide(color: Colours.lightSmoke, width: 1.5),
                         borderRadius: BorderRadius.all(Radius.circular(6.0)),
                       ),
                       backgroundColor: Colors.white,
                     ),
-                    child: BetterText(text: "Review opening", weight: 600),
+                    child: const BetterText(text: "Review opening", weight: 600),
                   ),
                 ],
               ),
@@ -296,7 +293,7 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
-      bottomNavigationBar: NavigationFooter(),
+      bottomNavigationBar: const NavigationFooter(),
     );
   }
 }
