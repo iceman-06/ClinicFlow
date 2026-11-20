@@ -2,34 +2,42 @@ import 'package:clinicflow/main.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/pages/components.dart';
 
-class CalendarCell extends StatefulWidget {
-  final int number;
+class CalendarCell extends StatelessWidget {
+  final int? dayNumber;
+  final bool isSelected;
+  final bool canSelect;
+  final VoidCallback? onTap;
+  final bool hasDot;
 
-  const CalendarCell({super.key, required this.number});
-
-  @override
-  State<CalendarCell> createState() => _CalendarCellState();
-}
-
-class _CalendarCellState extends State<CalendarCell> {
-  bool _hasDot = false;
-  bool _isActive = false;
+  const CalendarCell({
+    super.key,
+    required this.dayNumber,
+    required this.isSelected,
+    required this.canSelect,
+    required this.onTap,
+    this.hasDot = false,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (dayNumber == null) {
+      return Container();
+    }
+
     return TextButton(
-      onPressed: () {
-        setState(() {
-          _isActive = !_isActive;
-        });
-      },
-      style: TextButton.styleFrom(foregroundColor: Colors.white, padding: EdgeInsets.all(0)),
+      onPressed: canSelect ? onTap : null,
+      style: TextButton.styleFrom(
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.zero,
+      ),
       child: Container(
-        alignment: AlignmentGeometry.center,
-        color: _isActive ? Colours.green : Colors.white,
+        alignment: Alignment.center,
+        color: isSelected ? Colours.green : Colors.white,
         child: BetterText(
-          text: "${widget.number}${_hasDot ? "\n•" : ""}",
-          colour: _isActive ? Colors.white : Colors.black,
+          text: "$dayNumber${hasDot ? "\n●" : "\n○"}",
+          colour: canSelect
+              ? (isSelected ? Colors.white : Colors.black)
+              : Colors.grey,
           align: TextAlign.center,
         ),
       ),
@@ -39,10 +47,27 @@ class _CalendarCellState extends State<CalendarCell> {
 
 class Calendar extends StatelessWidget {
   final int offset;
-  const Calendar({super.key, required this.offset});
+  final int selectedDay;
+  final ValueChanged<int> onDaySelected;
+
+  const Calendar({
+    super.key,
+    required this.offset,
+    required this.selectedDay,
+    required this.onDaySelected,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final targetDate = DateTime(now.year, now.month + offset, 1);
+    final year = targetDate.year;
+    final month = targetDate.month;
+
+    final daysInMonth = DateTime(year, month + 1, 0).day;
+    final firstDayWeekday = targetDate.weekday; // 1 = Mon, 7 = Sun
+    final leadingSpaces = firstDayWeekday - 1;
+
     return GridView.count(
       padding: EdgeInsets.symmetric(vertical: 16.0),
       primary: false,
@@ -50,36 +75,32 @@ class Calendar extends StatelessWidget {
       mainAxisExtent: 40.0,
       shrinkWrap: true,
       children: <Widget>[
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "M"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "T"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "W"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "T"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "F"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "S"),
-        ),
-        Container(
-          alignment: AlignmentGeometry.center,
-          child: BetterText(text: "S"),
-        ),
-        for (var n = 0; n < 42; n++)
-          CalendarCell(number: getCalendarNumber(n, offset)),
+        for (String dayLabel in ["M", "T", "W", "T", "F", "S", "S"])
+          Container(
+            alignment: Alignment.center,
+            child: BetterText(text: dayLabel),
+          ),
+        for (int n = 0; n < 42; n++) ...[
+          if (n < leadingSpaces || n >= leadingSpaces + daysInMonth)
+            const CalendarCell(
+              dayNumber: null,
+              isSelected: false,
+              canSelect: false,
+              onTap: null,
+            )
+          else ...[
+            () {
+              final dayNum = n - leadingSpaces + 1;
+              return CalendarCell(
+                dayNumber: dayNum,
+                isSelected: selectedDay == dayNum,
+                canSelect: true,
+                onTap: () => onDaySelected(dayNum),
+                hasDot: false, // Wire up your appointment check here if needed
+              );
+            }(),
+          ],
+        ],
       ],
     );
   }
@@ -94,15 +115,38 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   int _offset = 0;
+  int _selectedDay = 1;
 
   @override
   Widget build(BuildContext context) {
+    final targetDate = DateTime(
+      DateTime.now().year,
+      DateTime.now().month + _offset,
+      1,
+    );
+
+    // Ensure selectedDay doesn't exceed the days in the newly selected month
+    final daysInCurrentMonth = DateTime(
+      targetDate.year,
+      targetDate.month + 1,
+      0,
+    ).day;
+    if (_selectedDay > daysInCurrentMonth) {
+      _selectedDay = daysInCurrentMonth;
+    }
+
+    final selectedDateTime = DateTime(
+      targetDate.year,
+      targetDate.month,
+      _selectedDay,
+    );
+
     return Scaffold(
       appBar: AppBar(
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Calender', size: 30.0),
+            BetterText(text: 'Calendar', size: 30.0),
             CircleAvatar(backgroundColor: Colours.eggWhite, child: Text("JD")),
           ],
         ),
@@ -110,6 +154,7 @@ class _CalendarPageState extends State<CalendarPage> {
       body: Container(
         padding: EdgeInsets.all(16.0),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               child: Column(
@@ -119,7 +164,7 @@ class _CalendarPageState extends State<CalendarPage> {
                     children: [
                       BetterText(
                         text:
-                            "${getMonth(dateTime: DateTime(DateTime.now().year, DateTime.now().month + _offset))} ${DateTime(DateTime.now().year, DateTime.now().month + _offset).year}",
+                            "${getMonth(dateTime: targetDate)} ${targetDate.year}",
                         size: 18.0,
                         weight: 600,
                       ),
@@ -131,25 +176,49 @@ class _CalendarPageState extends State<CalendarPage> {
                             onPressed: () {
                               setState(() {
                                 _offset -= 1;
+                                _selectedDay =
+                                    1; // Reset to 1st on month change
                               });
                             },
-                            icon: Icon(Icons.keyboard_arrow_left),
+                            icon: const Icon(Icons.keyboard_arrow_left),
                           ),
                           IconButton(
                             onPressed: () {
                               setState(() {
                                 _offset += 1;
+                                _selectedDay =
+                                    1; // Reset to 1st on month change
                               });
                             },
-                            icon: Icon(Icons.keyboard_arrow_right),
+                            icon: const Icon(Icons.keyboard_arrow_right),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  Calendar(offset: _offset),
+                  Calendar(
+                    offset: _offset,
+                    selectedDay: _selectedDay,
+                    onDaySelected: (day) {
+                      setState(() {
+                        _selectedDay = day;
+                      });
+                    },
+                  ),
                 ],
               ),
+            ),
+            const SizedBox(height: 8.0),
+            BetterText(
+              text: "● Booked appointment ○ Open booking times",
+              weight: 500,
+            ),
+            const SizedBox(height: 12.0),
+            BetterText(
+              text:
+                  "${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: targetDate)}, $_selectedDay",
+              size: 22.0,
+              weight: 600,
             ),
           ],
         ),
@@ -157,12 +226,4 @@ class _CalendarPageState extends State<CalendarPage> {
       bottomNavigationBar: NavigationFooter(),
     );
   }
-}
-
-int getCalendarNumber(int n, int offset) {
-  DateTime now = DateTime(DateTime.now().year, DateTime.now().month + offset);
-  int lastMonthLength = DateTime(now.year, now.month + offset, 0).day;
-  return (n + lastMonthLength - DateTime(now.year, now.month, 1).weekday + 1) %
-          (n < 7 ? lastMonthLength : DateTime(now.year, now.month + 1, 0).day) +
-      1;
 }

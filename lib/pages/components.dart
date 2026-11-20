@@ -1,3 +1,5 @@
+import 'package:clinicflow/pages/client/profile_page.dart';
+import 'package:clinicflow/pages/client/settings_page.dart';
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/pages/client/home_page.dart';
 import 'package:clinicflow/pages/client/calender_page.dart';
@@ -21,7 +23,10 @@ class NavigationFooter extends StatelessWidget {
         children: [
           IconButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const HomePage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const HomePage()),
+              );
             },
             icon: Icon(Icons.home, color: Colours.green),
             tooltip: "Home",
@@ -29,20 +34,33 @@ class NavigationFooter extends StatelessWidget {
           ),
           IconButton(
             onPressed: () {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const CalendarPage()));
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const CalendarPage()),
+              );
             },
             icon: Icon(Icons.calendar_month, color: Colours.green),
             tooltip: "Calender",
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ProfilesPage()),
+              );
+            },
             icon: Icon(Icons.people, color: Colours.green),
             tooltip: "Profiles",
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const SettingsPage()),
+              );
+            },
             icon: Icon(Icons.settings, color: Colours.green),
             tooltip: "Settings",
             iconSize: 40,
