@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/pages/client/settings_page.dart' as client_settings;
 
 class SettingsPage extends StatefulWidget {
@@ -26,8 +27,15 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _switchLanguage() {
+    setState(() {
+      currentAccount.toggleLanguage();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    setState(() {});
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -35,7 +43,7 @@ class _SettingsPageState extends State<SettingsPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Settings', size: 30.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('settings'), size: 30.0, colour: currentAccount.palette.textPrimary),
             const ProfileIconButton(),
           ],
         ),
@@ -45,10 +53,10 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SettingsSectionHeader(title: "Staff account"),
+            SettingsSectionHeader(title: currentAccount.t('staff_account')),
             const SizedBox(height: 4.0),
             BetterText(
-              text: "Jamie Chen · Clinic Staff Member",
+              text: "${currentAccount.name} · ${currentAccount.t('clinic_staff_member')}",
               size: 13.0,
               colour: currentAccount.palette.textSecondary,
             ),
@@ -66,7 +74,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
                 icon: Icon(Icons.swap_horiz, color: currentAccount.palette.primary),
                 label: BetterText(
-                  text: "Switch to Patient View",
+                  text: currentAccount.t('switch_to_patient'),
                   colour: currentAccount.palette.primary,
                   weight: 600,
                   size: 14.0,
@@ -74,23 +82,39 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 24.0),
-            const SettingsSectionHeader(
-              title: "Clinic preferences",
+            SettingsSectionHeader(
+              title: currentAccount.t('staff_preferences'),
             ),
             const SizedBox(height: 8.0),
             SettingsTile(
-              title: "Staff notifications",
-              trailingText: "On",
-              onTap: () {},
+              title: currentAccount.t('staff_notifications'),
+              trailingText: currentAccount.staffNotifications ? "On" : "Off",
+              onTap: () {
+                setState(() {
+                  currentAccount.staffNotifications = !currentAccount.staffNotifications;
+                });
+              },
             ),
             SettingsTile(
-              title: "Automated check-in prompts",
-              trailingText: "Enabled",
-              onTap: () {},
+              title: currentAccount.t('automated_check_in_prompts'),
+              trailingText: currentAccount.automatedCheckInPrompts ? "Enabled" : "Disabled",
+              onTap: () {
+                setState(() {
+                  currentAccount.automatedCheckInPrompts = !currentAccount.automatedCheckInPrompts;
+                });
+              },
             ),
             const SizedBox(height: 16.0),
-            const SettingsSectionHeader(
-              title: "Colour theme",
+            SettingsSectionHeader(title: currentAccount.t('language')),
+            const SizedBox(height: 8.0),
+            SettingsTile(
+              title: currentAccount.t('language'),
+              trailingText: currentAccount.language == AppLanguage.english ? 'English' : 'Français',
+              onTap: _switchLanguage,
+            ),
+            const SizedBox(height: 16.0),
+            SettingsSectionHeader(
+              title: currentAccount.t('colour_theme'),
               subtitle: "A little colour for your everyday care.",
             ),
             const SizedBox(height: 12.0),
@@ -98,7 +122,7 @@ class _SettingsPageState extends State<SettingsPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 ThemeCard(
-                  title: "Coastal",
+                  title: currentAccount.t('theme_coastal'),
                   status: currentAccount.theme == "Coastal"
                       ? "Selected"
                       : "Choose",
@@ -112,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 ThemeCard(
-                  title: "Dark",
+                  title: currentAccount.t('theme_dark'),
                   status: currentAccount.theme == "Dark"
                       ? "Selected"
                       : "Choose",
@@ -126,7 +150,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   },
                 ),
                 ThemeCard(
-                  title: "Clay",
+                  title: currentAccount.t('theme_clay'),
                   status: currentAccount.theme == "Clay"
                       ? "Selected"
                       : "Choose",
@@ -145,7 +169,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const NavigationFooter(),
+      bottomNavigationBar: const NavigationFooter(currentPage: 'settings'),
     );
   }
 }

@@ -8,6 +8,7 @@ import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
 import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
 import 'package:clinicflow/pages/staff/profiles_page.dart' as staff_profiles;
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
+import 'package:clinicflow/main.dart';
 
 class BetterText extends StatelessWidget {
   final String text;
@@ -58,15 +59,29 @@ class ProfileIconButton extends StatelessWidget {
             const SizedBox(height: 6.0),
             BetterText(text: "Client ID: ${currentAccount.activeProfile.clientId}", size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Role: ${currentAccount.isStaff ? 'Staff' : 'Patient'}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: "${currentAccount.t('account_type')}: ${currentAccount.isStaff ? currentAccount.t('clinic_staff_member') : 'Patient'}", size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Email: ${currentAccount.email}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: "Primary Email: ${currentAccount.primaryEmail}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            const SizedBox(height: 6.0),
+            BetterText(text: "Primary Phone: ${currentAccount.primaryPhone}", size: 14.0, colour: currentAccount.palette.textPrimary),
           ],
         ),
+        actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const AuthPage()),
+                (route) => false,
+              );
+            },
+            child: BetterText(text: currentAccount.t('logout'), colour: Colors.red, weight: 600),
+          ),
+          TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: BetterText(text: "Close", colour: currentAccount.palette.primary, weight: 600),
+            child: BetterText(text: currentAccount.t('close'), colour: currentAccount.palette.primary, weight: 600),
           ),
         ],
       ),
@@ -89,12 +104,19 @@ class ProfileIconButton extends StatelessWidget {
 }
 
 class NavigationFooter extends StatelessWidget {
-  const NavigationFooter({super.key});
+  final String currentPage;
+
+  const NavigationFooter({super.key, required this.currentPage});
 
   @override
   Widget build(BuildContext context) {
     final bool isStaff = currentAccount.isStaff;
     final palette = currentAccount.palette;
+
+    bool isHome = currentPage == 'home';
+    bool isCalendar = currentPage == 'calendar';
+    bool isProfiles = currentPage == 'profiles';
+    bool isSettings = currentPage == 'settings';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
@@ -110,63 +132,71 @@ class NavigationFooter extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => isStaff
-                      ? const staff_home.HomePage()
-                      : const client_home.HomePage(),
-                ),
-              );
-            },
-            icon: Icon(Icons.home, color: palette.primary),
-            tooltip: "Home",
+            onPressed: isHome
+                ? null
+                : () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => isStaff
+                            ? const staff_home.HomePage()
+                            : const client_home.HomePage(),
+                      ),
+                    );
+                  },
+            icon: Icon(Icons.home, color: isHome ? palette.textSecondary : palette.primary),
+            tooltip: currentAccount.t('home'),
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => isStaff
-                      ? const staff_calendar.CalendarPage()
-                      : const client_calendar.CalendarPage(),
-                ),
-              );
-            },
-            icon: Icon(Icons.calendar_month, color: palette.primary),
-            tooltip: "Calendar",
+            onPressed: isCalendar
+                ? null
+                : () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => isStaff
+                            ? const staff_calendar.CalendarPage()
+                            : const client_calendar.CalendarPage(),
+                      ),
+                    );
+                  },
+            icon: Icon(Icons.calendar_month, color: isCalendar ? palette.textSecondary : palette.primary),
+            tooltip: currentAccount.t('calendar'),
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => isStaff
-                      ? const staff_profiles.ProfilesPage()
-                      : const client_profiles.ProfilesPage(),
-                ),
-              );
-            },
-            icon: Icon(Icons.people, color: palette.primary),
-            tooltip: "Profiles",
+            onPressed: isProfiles
+                ? null
+                : () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => isStaff
+                            ? const staff_profiles.ProfilesPage()
+                            : const client_profiles.ProfilesPage(),
+                      ),
+                    );
+                  },
+            icon: Icon(Icons.people, color: isProfiles ? palette.textSecondary : palette.primary),
+            tooltip: currentAccount.t('profiles'),
             iconSize: 40,
           ),
           IconButton(
-            onPressed: () {
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => isStaff
-                      ? const staff_settings.SettingsPage()
-                      : const client_settings.SettingsPage(),
-                ),
-              );
-            },
-            icon: Icon(Icons.settings, color: palette.primary),
-            tooltip: "Settings",
+            onPressed: isSettings
+                ? null
+                : () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => isStaff
+                            ? const staff_settings.SettingsPage()
+                            : const client_settings.SettingsPage(),
+                      ),
+                    );
+                  },
+            icon: Icon(Icons.settings, color: isSettings ? palette.textSecondary : palette.primary),
+            tooltip: currentAccount.t('settings'),
             iconSize: 40,
           ),
         ],
@@ -227,7 +257,7 @@ class SettingsTile extends StatelessWidget {
                 BetterText(
                   text: trailingText,
                   size: 15.0,
-                  colour: trailingText == "On" || trailingText == "Enabled"
+                  colour: trailingText == "On" || trailingText == "Enabled" || trailingText == "English" || trailingText == "Français"
                       ? currentAccount.palette.textPrimary
                       : currentAccount.palette.textSecondary,
                 ),

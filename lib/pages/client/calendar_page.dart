@@ -41,7 +41,7 @@ class _CalendarCellState extends State<CalendarCell> {
         alignment: Alignment.center,
         color: widget.isSelected ? currentAccount.palette.primary : currentAccount.palette.background,
         child: BetterText(
-          text: "${widget.dayNumber}${widget.hasDot ? "\n●" : (widget.hasCircleDot ? "\n○" : "")}",
+          text: "${widget.dayNumber}\n○",
           colour: widget.canSelect
               ? (widget.isSelected ? Colors.white : currentAccount.palette.textPrimary)
               : currentAccount.palette.textSecondary,
@@ -98,17 +98,12 @@ class MonthCalendarView extends StatelessWidget {
           else ...[
             () {
               final dayNum = n - leadingSpaces + 1;
-              bool hasDot = (month == 11 && (dayNum == 9 || dayNum == 10));
-              bool hasCircle = !hasDot;
-
               return CalendarCell(
                 key: ValueKey('client_cell_${year}_${month}_$dayNum'),
                 dayNumber: dayNum,
                 isSelected: selectedDay == dayNum,
                 canSelect: true,
                 onTap: () => onDaySelected(dayNum),
-                hasDot: hasDot,
-                hasCircleDot: hasCircle,
               );
             }()
           ]
@@ -119,26 +114,29 @@ class MonthCalendarView extends StatelessWidget {
 }
 
 class WeekCalendarView extends StatelessWidget {
-  final int weekOffset;
+  final DateTime selectedDateTime;
   final int selectedDay;
   final ValueChanged<int> onDaySelected;
+  final Function(DateTime, String) onSlotSelected;
+  final String selectedSlotTime;
 
   const WeekCalendarView({
     super.key,
-    required this.weekOffset,
+    required this.selectedDateTime,
     required this.selectedDay,
     required this.onDaySelected,
+    required this.onSlotSelected,
+    required this.selectedSlotTime,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Calculate start of week (Monday) based on base week Nov 9-15, 2026 + weekOffset * 7 days
-    final baseMonday = DateTime(2026, 11, 9);
-    final currentMonday = baseMonday.add(Duration(days: weekOffset * 7));
+    final int weekday = selectedDateTime.weekday;
+    final monday = selectedDateTime.subtract(Duration(days: weekday - 1));
 
     final weekDays = [];
     for (int i = 0; i < 7; i++) {
-      final d = currentMonday.add(Duration(days: i));
+      final d = monday.add(Duration(days: i));
       String name = "";
       switch (d.weekday) {
         case 1: name = "Mon"; break;
@@ -216,41 +214,26 @@ class WeekCalendarView extends StatelessWidget {
                       for (var d in weekDays)
                         Expanded(
                           child: GestureDetector(
-                            onTap: () => onDaySelected(d["day"] as int),
+                            onTap: () {
+                              onDaySelected(d["day"] as int);
+                              onSlotSelected(d["date"] as DateTime, hour);
+                            },
                             child: Container(
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: currentAccount.palette.smoke,
                                   width: 0.5,
                                 ),
-                                color: (d["day"] == 10 && hour == "10:00") ||
-                                        (d["day"] == 9 && hour == "14:30")
+                                color: (selectedDay == d["day"] && selectedSlotTime == hour)
                                     ? currentAccount.palette.primary
-                                    : ((d["day"] == 10 && hour == "11:30") ||
-                                            (d["day"] == 11 && hour == "10:00") ||
-                                            (d["day"] == 11 && hour == "11:30") ||
-                                            (d["day"] == 13 && hour == "10:00") ||
-                                            (d["day"] == 12 && hour == "13:00") ||
-                                            (d["day"] == 14 && hour == "14:00"))
-                                        ? currentAccount.palette.secondary
-                                        : Colors.transparent,
+                                    : Colors.transparent,
                               ),
                               alignment: Alignment.center,
-                              child: (d["day"] == 10 && hour == "10:00") ||
-                                      (d["day"] == 9 && hour == "14:30") ||
-                                      (d["day"] == 10 && hour == "11:30") ||
-                                      (d["day"] == 11 && hour == "10:00") ||
-                                      (d["day"] == 11 && hour == "11:30") ||
-                                      (d["day"] == 13 && hour == "10:00") ||
-                                      (d["day"] == 12 && hour == "13:00") ||
-                                      (d["day"] == 14 && hour == "14:00")
+                              child: (selectedDay == d["day"] && selectedSlotTime == hour)
                                   ? BetterText(
                                       text: hour,
                                       size: 10.0,
-                                      colour: (d["day"] == 10 && hour == "10:00") ||
-                                              (d["day"] == 9 && hour == "14:30")
-                                          ? Colors.white
-                                          : currentAccount.palette.textPrimary,
+                                      colour: Colors.white,
                                       weight: 600,
                                     )
                                   : const SizedBox.shrink(),
@@ -277,32 +260,59 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   int _offset = 0;
-  int _weekOffset = 0;
-  int _selectedDay = 11;
+  int _selectedDay = 9;
   bool _isWeekView = false;
+  DateTime _currentWeekBase = DateTime(2026, 11, 9);
+  String _selectedSlotTime = "14:30";
+
+  void _showBookingMenu(BuildContext context, DateTime date, String slot) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(text: "Book Appointment", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: BetterText(text: "Would you like to book this slot on ${getMonth(dateTime: date)} $_selectedDay at $slot?", size: 14.0, colour: currentAccount.palette.textPrimary),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Appointment booked successfully!")),
+              );
+            },
+            child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    setState(() {});
     final targetDate = DateTime(
       DateTime.now().year,
       DateTime.now().month + _offset,
       1,
     );
 
-    final baseMonday = DateTime(2026, 11, 9);
-    final currentMonday = baseMonday.add(Duration(days: _weekOffset * 7));
-    final currentSunday = currentMonday.add(const Duration(days: 6));
-
     final daysInCurrentMonth = DateTime(targetDate.year, targetDate.month + 1, 0).day;
     if (_selectedDay > daysInCurrentMonth) {
       _selectedDay = daysInCurrentMonth;
     }
 
-    final selectedDateTime = DateTime(
-      targetDate.year,
-      targetDate.month,
-      _selectedDay,
-    );
+    final selectedDateTime = _isWeekView
+        ? _currentWeekBase.add(Duration(days: _selectedDay - _currentWeekBase.day))
+        : DateTime(targetDate.year, targetDate.month, _selectedDay);
+
+    final bool isPastDate = selectedDateTime.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+
+    final weekMonday = selectedDateTime.subtract(Duration(days: selectedDateTime.weekday - 1));
+    final weekSunday = weekMonday.add(const Duration(days: 6));
 
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
@@ -311,7 +321,7 @@ class _CalendarPageState extends State<CalendarPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Calendar', size: 30.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('calendar'), size: 30.0, colour: currentAccount.palette.textPrimary),
             const ProfileIconButton(),
           ],
         ),
@@ -326,7 +336,7 @@ class _CalendarPageState extends State<CalendarPage> {
               children: [
                 BetterText(
                   text: _isWeekView
-                      ? "${currentMonday.day}–${currentSunday.day} ${getMonth(dateTime: currentSunday)} ${currentSunday.year}"
+                      ? "${weekMonday.day}–${weekSunday.day} ${getMonth(dateTime: weekSunday)} ${weekSunday.year}"
                       : "${getMonth(dateTime: targetDate)} ${targetDate.year}",
                   size: 18.0,
                   weight: 600,
@@ -337,11 +347,17 @@ class _CalendarPageState extends State<CalendarPage> {
                     TextButton(
                       onPressed: () {
                         setState(() {
+                          if (!_isWeekView) {
+                            _currentWeekBase = DateTime(targetDate.year, targetDate.month, _selectedDay);
+                          } else {
+                            _offset = _currentWeekBase.month - DateTime.now().month;
+                            _selectedDay = _currentWeekBase.day;
+                          }
                           _isWeekView = !_isWeekView;
                         });
                       },
                       child: BetterText(
-                        text: _isWeekView ? "Month" : "Week",
+                        text: _isWeekView ? currentAccount.t('month') : currentAccount.t('week'),
                         size: 14.0,
                         weight: 600,
                         colour: currentAccount.palette.textPrimary,
@@ -351,7 +367,8 @@ class _CalendarPageState extends State<CalendarPage> {
                       onPressed: () {
                         setState(() {
                           if (_isWeekView) {
-                            _weekOffset -= 1;
+                            _currentWeekBase = _currentWeekBase.subtract(const Duration(days: 7));
+                            _selectedDay = _currentWeekBase.day;
                           } else {
                             _offset -= 1;
                             _selectedDay = 1;
@@ -364,7 +381,8 @@ class _CalendarPageState extends State<CalendarPage> {
                       onPressed: () {
                         setState(() {
                           if (_isWeekView) {
-                            _weekOffset += 1;
+                            _currentWeekBase = _currentWeekBase.add(const Duration(days: 7));
+                            _selectedDay = _currentWeekBase.day;
                           } else {
                             _offset += 1;
                             _selectedDay = 1;
@@ -379,13 +397,20 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
             _isWeekView
                 ? WeekCalendarView(
-                    weekOffset: _weekOffset,
+                    selectedDateTime: selectedDateTime,
                     selectedDay: _selectedDay,
                     onDaySelected: (day) {
                       setState(() {
                         _selectedDay = day;
                       });
                     },
+                    onSlotSelected: (date, slot) {
+                      setState(() {
+                        _selectedSlotTime = slot;
+                        _currentWeekBase = date;
+                      });
+                    },
+                    selectedSlotTime: _selectedSlotTime,
                   )
                 : MonthCalendarView(
                     offset: _offset,
@@ -399,21 +424,19 @@ class _CalendarPageState extends State<CalendarPage> {
             const SizedBox(height: 8.0),
             Row(
               children: [
-                BetterText(text: "● ", colour: currentAccount.palette.primary, size: 12.0),
-                BetterText(text: "Booked appointment   ", size: 12.0, colour: currentAccount.palette.textSecondary),
-                const BetterText(text: "○ ", size: 12.0),
-                BetterText(text: "Open booking times", size: 12.0, colour: currentAccount.palette.textSecondary),
+                BetterText(text: "○ ", size: 12.0),
+                BetterText(text: currentAccount.t('open_booking_times'), size: 12.0, colour: currentAccount.palette.textSecondary),
               ],
             ),
             const SizedBox(height: 20.0),
             BetterText(
-              text: "${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: targetDate)} $_selectedDay",
+              text: "${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: selectedDateTime)} $_selectedDay",
               size: 20.0,
               weight: 600,
             ),
             const SizedBox(height: 4.0),
             BetterText(
-              text: "Booking",
+              text: currentAccount.t('selected_opening_slot'),
               size: 13.0,
               colour: currentAccount.palette.textSecondary,
             ),
@@ -429,8 +452,8 @@ class _CalendarPageState extends State<CalendarPage> {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      BetterText(text: "14:30", weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
-                      BetterText(text: "15:00", colour: currentAccount.palette.textSecondary, size: 14.0),
+                      BetterText(text: _selectedSlotTime, weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
+                      BetterText(text: "30 min", colour: currentAccount.palette.textSecondary, size: 14.0),
                     ],
                   ),
                   const VerticalDivider(width: 30),
@@ -438,10 +461,10 @@ class _CalendarPageState extends State<CalendarPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        BetterText(text: "Jamie Chen", weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+                        BetterText(text: currentAccount.activeProfile.name, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
                         const SizedBox(height: 2.0),
                         BetterText(
-                          text: "Follow-up appointment - 30 min",
+                          text: "Open slot - $_selectedSlotTime",
                           size: 12.0,
                           colour: currentAccount.palette.textSecondary,
                         ),
@@ -456,17 +479,17 @@ class _CalendarPageState extends State<CalendarPage> {
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: () {},
+                onPressed: isPastDate ? null : () => _showBookingMenu(context, selectedDateTime, _selectedSlotTime),
                 style: FilledButton.styleFrom(
-                  backgroundColor: currentAccount.palette.primary,
+                  backgroundColor: isPastDate ? Colors.grey : currentAccount.palette.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
                 icon: const Icon(Icons.add, color: Colors.white),
-                label: const BetterText(
-                  text: "Choose a time",
+                label: BetterText(
+                  text: currentAccount.t('choose_a_time'),
                   colour: Colors.white,
                   weight: 600,
                   size: 16.0,
@@ -476,7 +499,7 @@ class _CalendarPageState extends State<CalendarPage> {
           ],
         ),
       ),
-      bottomNavigationBar: const NavigationFooter(),
+      bottomNavigationBar: const NavigationFooter(currentPage: 'calendar'),
     );
   }
 }

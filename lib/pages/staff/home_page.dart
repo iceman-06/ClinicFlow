@@ -85,7 +85,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: BetterText(text: "Done", colour: currentAccount.palette.primary, weight: 600),
+              child: BetterText(text: currentAccount.t('close'), colour: currentAccount.palette.primary, weight: 600),
             ),
           ],
         ),
@@ -112,10 +112,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                 ),
               ],
             ),
-            VerticalDivider(
+            const VerticalDivider(
               thickness: 1.5,
               width: 30.0,
-              color: currentAccount.palette.eggWhite,
+              color: Colors.transparent,
             ),
             Expanded(
               child: Column(
@@ -167,7 +167,7 @@ class HomePage extends StatelessWidget {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Home', size: 30.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('home'), size: 30.0, colour: currentAccount.palette.textPrimary),
             const ProfileIconButton(),
           ],
         ),
@@ -208,13 +208,13 @@ class HomePage extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       BetterText(
-                        text: "Schedule status",
+                        text: currentAccount.t('schedule_status'),
                         weight: 600,
                         size: 16.0,
                         colour: currentAccount.palette.textPrimary,
                       ),
                       BetterText(
-                        text: "2 yet to arrive",
+                        text: "2 ${currentAccount.t('yet_to_arrive')}",
                         size: 12.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
@@ -237,7 +237,7 @@ class HomePage extends StatelessWidget {
                           Row(
                             children: [
                               BetterText(text: "● ", colour: currentAccount.palette.primary, size: 10.0),
-                              const BetterText(text: "Done", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
+                              BetterText(text: currentAccount.t('done'), size: 12.0, colour: currentAccount.palette.textSecondary),
                             ],
                           ),
                         ],
@@ -253,9 +253,9 @@ class HomePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 2.0),
                           Row(
-                            children: const [
-                              BetterText(text: "● ", colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
-                              BetterText(text: "In progress", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
+                            children: [
+                              const BetterText(text: "● ", colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
+                              BetterText(text: currentAccount.t('in_progress'), size: 12.0, colour: currentAccount.palette.textSecondary),
                             ],
                           ),
                         ],
@@ -263,16 +263,17 @@ class HomePage extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const BetterText(
+                          BetterText(
                             text: "1",
                             size: 22.0,
                             weight: 700,
+                            colour: currentAccount.palette.textPrimary,
                           ),
                           const SizedBox(height: 2.0),
                           Row(
-                            children: const [
-                              BetterText(text: "● ", colour: Colors.black, size: 10.0),
-                              BetterText(text: "Checked in", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
+                            children: [
+                              BetterText(text: "● ", colour: currentAccount.palette.textPrimary, size: 10.0),
+                              BetterText(text: currentAccount.t('checked_in'), size: 12.0, colour: currentAccount.palette.textSecondary),
                             ],
                           ),
                         ],
@@ -288,9 +289,9 @@ class HomePage extends StatelessWidget {
                           ),
                           const SizedBox(height: 2.0),
                           Row(
-                            children: const [
+                            children: [
                               BetterText(text: "● ", colour: Color.fromARGB(255, 192, 57, 43), size: 10.0),
-                              BetterText(text: "No-show", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
+                              BetterText(text: currentAccount.t('no_show'), size: 12.0, colour: currentAccount.palette.textSecondary),
                             ],
                           ),
                         ],
@@ -305,7 +306,7 @@ class HomePage extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 BetterText(
-                  text: "Up next",
+                  text: currentAccount.t('up_next'),
                   size: 18.0,
                   weight: 600,
                   colour: currentAccount.palette.textPrimary,
@@ -343,7 +344,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 24.0),
             BetterText(
-              text: "On the schedule",
+              text: currentAccount.t('on_the_schedule'),
               size: 18.0,
               weight: 600,
               colour: currentAccount.palette.textPrimary,
@@ -369,7 +370,7 @@ class HomePage extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const NavigationFooter(),
+      bottomNavigationBar: const NavigationFooter(currentPage: 'home'),
     );
   }
 }

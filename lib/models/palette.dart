@@ -10,6 +10,7 @@ class ColorPalette {
   final Color smoke;
   final Color eggWhite;
   final Color thinGreen;
+  final List<Color> announcementColors;
 
   const ColorPalette({
     required this.name,
@@ -21,6 +22,7 @@ class ColorPalette {
     required this.smoke,
     required this.eggWhite,
     required this.thinGreen,
+    required this.announcementColors,
   });
 }
 
@@ -35,6 +37,11 @@ class AppPalettes {
     smoke: Color.fromARGB(255, 224, 224, 224),
     eggWhite: Color.fromARGB(255, 224, 224, 224),
     thinGreen: Color.fromARGB(255, 230, 242, 238),
+    announcementColors: [
+      Color.fromARGB(255, 16, 108, 103),
+      Color.fromARGB(255, 160, 78, 57),
+      Color.fromARGB(255, 41, 128, 185),
+    ],
   );
 
   static const ColorPalette dark = ColorPalette(
@@ -47,6 +54,11 @@ class AppPalettes {
     smoke: Color.fromARGB(255, 70, 70, 70),
     eggWhite: Color.fromARGB(255, 60, 60, 60),
     thinGreen: Color.fromARGB(255, 40, 70, 70),
+    announcementColors: [
+      Color.fromARGB(255, 30, 144, 255),
+      Color.fromARGB(255, 220, 100, 80),
+      Color.fromARGB(255, 70, 180, 120),
+    ],
   );
 
   static const ColorPalette clay = ColorPalette(
@@ -59,6 +71,11 @@ class AppPalettes {
     smoke: Color.fromARGB(255, 230, 215, 205),
     eggWhite: Color.fromARGB(255, 230, 215, 205),
     thinGreen: Color.fromARGB(255, 245, 230, 225),
+    announcementColors: [
+      Color.fromARGB(255, 160, 78, 57),
+      Color.fromARGB(255, 201, 126, 40),
+      Color.fromARGB(255, 88, 129, 87),
+    ],
   );
 
   static ColorPalette fromName(String name) {

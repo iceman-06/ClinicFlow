@@ -1,24 +1,17 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
 
 class StaffProfileCard extends StatelessWidget {
-  final String name;
-  final String clientId;
-  final String dobAndPhone;
-  final String bookingInfo;
-  final String bookingSubInfo;
+  final UserProfile profile;
   final VoidCallback onViewProfile;
   final VoidCallback onBookForClient;
   final VoidCallback onManage;
 
   const StaffProfileCard({
     super.key,
-    required this.name,
-    required this.clientId,
-    required this.dobAndPhone,
-    required this.bookingInfo,
-    required this.bookingSubInfo,
+    required this.profile,
     required this.onViewProfile,
     required this.onBookForClient,
     required this.onManage,
@@ -34,9 +27,9 @@ class StaffProfileCard extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              BetterText(text: name, weight: 600, size: 16.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: profile.name, weight: 600, size: 16.0, colour: currentAccount.palette.textPrimary),
               BetterText(
-                text: clientId,
+                text: profile.clientId,
                 size: 13.0,
                 colour: currentAccount.palette.textSecondary,
               ),
@@ -44,15 +37,15 @@ class StaffProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: 4.0),
           BetterText(
-            text: dobAndPhone,
+            text: "${profile.formattedDob} · Secondary: ${profile.phone}",
             size: 12.0,
             colour: currentAccount.palette.textSecondary,
           ),
           const SizedBox(height: 8.0),
-          BetterText(text: bookingInfo, size: 14.0, weight: 500, colour: currentAccount.palette.textPrimary),
+          BetterText(text: profile.upcomingBooking, size: 14.0, weight: 500, colour: currentAccount.palette.textPrimary),
           const SizedBox(height: 2.0),
           BetterText(
-            text: bookingSubInfo,
+            text: profile.bookingSubInfo,
             size: 12.0,
             colour: currentAccount.palette.textSecondary,
           ),
@@ -63,7 +56,7 @@ class StaffProfileCard extends StatelessWidget {
               GestureDetector(
                 onTap: onViewProfile,
                 child: BetterText(
-                  text: "View profile",
+                  text: currentAccount.t('view_profile'),
                   weight: 600,
                   size: 13.0,
                   colour: currentAccount.palette.textPrimary,
@@ -74,7 +67,7 @@ class StaffProfileCard extends StatelessWidget {
                   GestureDetector(
                     onTap: onManage,
                     child: BetterText(
-                      text: "Manage",
+                      text: currentAccount.t('manage'),
                       weight: 600,
                       size: 13.0,
                       colour: currentAccount.palette.textSecondary,
@@ -92,7 +85,7 @@ class StaffProfileCard extends StatelessWidget {
                     ),
                     icon: Icon(Icons.add, size: 16.0, color: currentAccount.palette.textPrimary),
                     label: BetterText(
-                      text: "Book for client",
+                      text: currentAccount.t('book_for_client'),
                       weight: 600,
                       size: 13.0,
                       colour: currentAccount.palette.textPrimary,
@@ -118,19 +111,60 @@ class ProfilesPage extends StatefulWidget {
 }
 
 class _ProfilesPageState extends State<ProfilesPage> {
-  final TextEditingController _searchController = TextEditingController(text: "Chen");
+  void _manageClient(UserProfile profile) {
+    final notesController = TextEditingController(text: profile.notes);
 
-  void _manageClient(String clientName) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Manage $clientName", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
-        content: BetterText(text: "Update client status, medical notes, or contact info here.", size: 14.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: "${currentAccount.t('manage')} ${profile.name}", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BetterText(text: currentAccount.t('primary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
+              const SizedBox(height: 4.0),
+              BetterText(text: "Email: ${currentAccount.primaryEmail}", size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: "Phone: ${currentAccount.primaryPhone}", size: 13.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 12.0),
+              BetterText(text: currentAccount.t('secondary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
+              const SizedBox(height: 4.0),
+              BetterText(text: "Phone: ${profile.phone}", size: 13.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 16.0),
+              BetterText(text: currentAccount.t('notes'), weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 6.0),
+              TextField(
+                controller: notesController,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: currentAccount.t('patient_notes_placeholder'),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8.0),
+                    borderSide: BorderSide(color: currentAccount.palette.smoke),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: BetterText(text: "Close", colour: currentAccount.palette.primary, weight: 600),
+            child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                profile.notes = notesController.text.trim();
+              });
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Client notes updated successfully")),
+              );
+            },
+            child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
           ),
         ],
       ),
@@ -139,6 +173,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
 
   @override
   Widget build(BuildContext context) {
+    setState(() {});
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -146,7 +181,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            BetterText(text: 'Profiles', size: 30.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('profiles'), size: 30.0, colour: currentAccount.palette.textPrimary),
             const ProfileIconButton(),
           ],
         ),
@@ -157,37 +192,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             BetterText(
-              text: "Find a client to view or book an appointment.",
+              text: currentAccount.t('search_clients_desc'),
               size: 14.0,
-              colour: currentAccount.palette.textSecondary,
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search, color: currentAccount.palette.textSecondary),
-                suffixIcon: IconButton(
-                  icon: Icon(Icons.close, color: currentAccount.palette.textSecondary),
-                  onPressed: () {
-                    _searchController.clear();
-                  },
-                ),
-                hintText: "Search...",
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                  borderSide: BorderSide(color: currentAccount.palette.smoke, width: 1.5),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.0),
-                  borderSide: BorderSide(color: currentAccount.palette.smoke, width: 1.5),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-              ),
-            ),
-            const SizedBox(height: 4.0),
-            BetterText(
-              text: "Search by name, client ID or phone number",
-              size: 11.0,
               colour: currentAccount.palette.textSecondary,
             ),
             const SizedBox(height: 20.0),
@@ -195,54 +201,30 @@ class _ProfilesPageState extends State<ProfilesPage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 BetterText(
-                  text: "Search results",
-                  size: 18.0,
-                  weight: 600,
-                  colour: currentAccount.palette.textPrimary,
-                ),
-                BetterText(
-                  text: "3 clients",
+                  text: "${currentAccount.profiles.length} ${currentAccount.t('clients')}",
                   size: 12.0,
                   colour: currentAccount.palette.textSecondary,
                 ),
               ],
             ),
             Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
-            StaffProfileCard(
-              name: "Jamie Chen",
-              clientId: "CL-1042",
-              dobAndPhone: "DOB 12 Mar 1992 · 07700 900142",
-              bookingInfo: "Today, 9 Nov · 14:30–15:00",
-              bookingSubInfo: "Follow-up · Checked in",
-              onViewProfile: () {},
-              onBookForClient: () {},
-              onManage: () => _manageClient("Jamie Chen"),
-            ),
-            StaffProfileCard(
-              name: "Olivia Chen",
-              clientId: "CL-1186",
-              dobAndPhone: "DOB 24 Aug 1985 · 07700 900186",
-              bookingInfo: "No upcoming booking",
-              bookingSubInfo: "Last visit: Today at 12:00 · Done",
-              onViewProfile: () {},
-              onBookForClient: () {},
-              onManage: () => _manageClient("Olivia Chen"),
-            ),
-            StaffProfileCard(
-              name: "Daniel Chen",
-              clientId: "CL-1253",
-              dobAndPhone: "DOB 06 Feb 1978 · 07700 900253",
-              bookingInfo: "Tue, 10 Nov · 10:00–10:45",
-              bookingSubInfo: "Initial consultation · Confirmed",
-              onViewProfile: () {},
-              onBookForClient: () {},
-              onManage: () => _manageClient("Daniel Chen"),
-            ),
+            for (var profile in currentAccount.profiles)
+              StaffProfileCard(
+                profile: profile,
+                onViewProfile: () {},
+                onBookForClient: () {
+                  Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(builder: (_) => const staff_calendar.CalendarPage()),
+                  );
+                },
+                onManage: () => _manageClient(profile),
+              ),
             const SizedBox(height: 24.0),
           ],
         ),
       ),
-      bottomNavigationBar: const NavigationFooter(),
+      bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
     );
   }
 }
