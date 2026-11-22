@@ -6,6 +6,7 @@ class CalendarCell extends StatefulWidget {
   final int? dayNumber;
   final bool isSelected;
   final bool canSelect;
+  final bool isPast;
   final VoidCallback? onTap;
 
   const CalendarCell({
@@ -13,6 +14,7 @@ class CalendarCell extends StatefulWidget {
     required this.dayNumber,
     required this.isSelected,
     required this.canSelect,
+    required this.isPast,
     required this.onTap,
   });
 
@@ -25,6 +27,14 @@ class _CalendarCellState extends State<CalendarCell> {
   Widget build(BuildContext context) {
     if (widget.dayNumber == null) {
       return Container();
+    }
+
+    Color textColor = widget.canSelect
+        ? (widget.isSelected ? Colors.white : currentAccount.palette.textPrimary)
+        : currentAccount.palette.textSecondary;
+
+    if (widget.isPast && !widget.isSelected) {
+      textColor = textColor.withAlpha(120);
     }
 
     return TextButton(
@@ -40,9 +50,7 @@ class _CalendarCellState extends State<CalendarCell> {
             : currentAccount.palette.background,
         child: BetterText(
           text: "${widget.dayNumber}\n○",
-          colour: widget.canSelect
-              ? (widget.isSelected ? Colors.white : currentAccount.palette.textPrimary)
-              : currentAccount.palette.textSecondary,
+          colour: textColor,
           align: TextAlign.center,
         ),
       ),
@@ -87,20 +95,24 @@ class MonthCalendarView extends StatelessWidget {
           ),
         for (int n = 0; n < 42; n++) ...[
           if (n < leadingSpaces || n >= leadingSpaces + daysInMonth)
-            const CalendarCell(
+            CalendarCell(
               dayNumber: null,
               isSelected: false,
               canSelect: false,
+              isPast: false,
               onTap: null,
             )
           else ...[
             () {
               final dayNum = n - leadingSpaces + 1;
+              final cellDate = DateTime(year, month, dayNum);
+              final isPast = cellDate.isBefore(DateTime(now.year, now.month, now.day));
               return CalendarCell(
                 key: ValueKey('staff_cell_${year}_${month}_$dayNum'),
                 dayNumber: dayNum,
                 isSelected: selectedDay == dayNum,
                 canSelect: true,
+                isPast: isPast,
                 onTap: () => onDaySelected(dayNum),
               );
             }()
@@ -129,6 +141,7 @@ class WeekCalendarView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
     final int weekday = selectedDateTime.weekday;
     final monday = selectedDateTime.subtract(Duration(days: weekday - 1));
 
@@ -145,7 +158,8 @@ class WeekCalendarView extends StatelessWidget {
         case 6: name = "Sat"; break;
         case 7: name = "Sun"; break;
       }
-      weekDays.add({"name": name, "date": d, "day": d.day});
+      final isPast = d.isBefore(DateTime(now.year, now.month, now.day));
+      weekDays.add({"name": name, "date": d, "day": d.day, "isPast": isPast});
     }
 
     final hours = [
@@ -185,7 +199,7 @@ class WeekCalendarView extends StatelessWidget {
                           align: TextAlign.center,
                           colour: selectedDay == d["day"]
                               ? currentAccount.palette.primary
-                              : currentAccount.palette.textPrimary,
+                              : (d["isPast"] == true ? currentAccount.palette.textSecondary.withAlpha(120) : currentAccount.palette.textPrimary),
                         ),
                       ],
                     ),
@@ -260,33 +274,82 @@ class CalendarPage extends StatefulWidget {
 
 class _CalendarPageState extends State<CalendarPage> {
   int _offset = 0;
-  int _selectedDay = 9;
+  int _selectedDay = DateTime.now().day;
   bool _isWeekView = true;
-  DateTime _currentWeekBase = DateTime(2026, 11, 9);
+  DateTime _currentWeekBase = DateTime.now();
   String _selectedSlotTime = "09:00";
+  String _selectedApptType = "Follow-up";
+  String _selectedApptLength = "30 minutes";
 
   void _showBookingMenu(BuildContext context, DateTime date, String slot) {
+    _selectedApptType = currentAccount.t('follow_up');
+    _selectedApptLength = "30 minutes";
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Book Appointment", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
-        content: BetterText(text: "Would you like to book this slot on ${getMonth(dateTime: date)} $_selectedDay at $slot?", size: 14.0, colour: currentAccount.palette.textPrimary),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: currentAccount.palette.background,
+          title: BetterText(text: "Book Appointment", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BetterText(text: "Profile: ${currentAccount.activeProfile.name}", weight: 600, size: 15.0, colour: currentAccount.palette.primary),
+              const SizedBox(height: 8.0),
+              BetterText(text: "Date: ${getMonth(dateTime: date)} $_selectedDay, ${date.year} at $slot", size: 14.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 12.0),
+              BetterText(text: currentAccount.t('appointment_type'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
+              DropdownButton<String>(
+                value: _selectedApptType,
+                dropdownColor: currentAccount.palette.background,
+                isExpanded: true,
+                items: [currentAccount.t('follow_up'), currentAccount.t('initial_consultation'), currentAccount.t('specialist_consultation')]
+                    .map((t) => DropdownMenuItem(value: t, child: BetterText(text: t, colour: currentAccount.palette.textPrimary)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() {
+                      _selectedApptType = val;
+                    });
+                  }
+                },
+              ),
+              const SizedBox(height: 12.0),
+              BetterText(text: currentAccount.t('appointment_length'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
+              DropdownButton<String>(
+                value: _selectedApptLength,
+                dropdownColor: currentAccount.palette.background,
+                isExpanded: true,
+                items: ["30 minutes", "45 minutes", "60 minutes"]
+                    .map((l) => DropdownMenuItem(value: l, child: BetterText(text: l, colour: currentAccount.palette.textPrimary)))
+                    .toList(),
+                onChanged: (val) {
+                  if (val != null) {
+                    setDialogState(() {
+                      _selectedApptLength = val;
+                    });
+                  }
+                },
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Appointment booked successfully!")),
-              );
-            },
-            child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
-          ),
-        ],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Appointment booked successfully!")),
+                );
+              },
+              child: BetterText(text: currentAccount.t('book'), colour: currentAccount.palette.primary, weight: 600),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -294,9 +357,10 @@ class _CalendarPageState extends State<CalendarPage> {
   @override
   Widget build(BuildContext context) {
     setState(() {});
+    final now = DateTime.now();
     final targetDate = DateTime(
-      DateTime.now().year,
-      DateTime.now().month + _offset,
+      now.year,
+      now.month + _offset,
       1,
     );
 
@@ -313,7 +377,7 @@ class _CalendarPageState extends State<CalendarPage> {
         ? _currentWeekBase.add(Duration(days: _selectedDay - _currentWeekBase.day))
         : DateTime(targetDate.year, targetDate.month, _selectedDay);
 
-    final bool isPastDate = selectedDateTime.isBefore(DateTime.now().subtract(const Duration(days: 1)));
+    final bool isPastDate = selectedDateTime.isBefore(DateTime(now.year, now.month, now.day));
 
     final weekMonday = selectedDateTime.subtract(Duration(days: selectedDateTime.weekday - 1));
     final weekSunday = weekMonday.add(const Duration(days: 6));
@@ -354,7 +418,7 @@ class _CalendarPageState extends State<CalendarPage> {
                           if (!_isWeekView) {
                             _currentWeekBase = DateTime(targetDate.year, targetDate.month, _selectedDay);
                           } else {
-                            _offset = _currentWeekBase.month - DateTime.now().month;
+                            _offset = _currentWeekBase.month - now.month;
                             _selectedDay = _currentWeekBase.day;
                           }
                           _isWeekView = !_isWeekView;
@@ -448,7 +512,7 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
             const SizedBox(height: 4.0),
             BetterText(
-              text: "$_selectedSlotTime · Jamie Chen",
+              text: "$_selectedSlotTime · ${currentAccount.activeProfile.name}",
               size: 13.0,
               colour: currentAccount.palette.textSecondary,
             ),

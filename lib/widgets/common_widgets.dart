@@ -90,13 +90,14 @@ class ProfileIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final palette = currentAccount.palette;
     return GestureDetector(
       onTap: () => _showProfilePopup(context),
       child: CircleAvatar(
-        backgroundColor: currentAccount.palette.secondary,
+        backgroundColor: palette.secondary,
         child: Text(
           currentAccount.initials,
-          style: TextStyle(color: currentAccount.palette.textPrimary, fontWeight: FontWeight.bold),
+          style: TextStyle(color: palette.textPrimary, fontWeight: FontWeight.bold),
         ),
       ),
     );
