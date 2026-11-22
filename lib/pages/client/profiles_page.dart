@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/pages/components.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 
 class FamilyMemberCard extends StatelessWidget {
@@ -34,7 +34,7 @@ class FamilyMemberCard extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 2.0),
                       decoration: BoxDecoration(
-                        color: Colours.green,
+                        color: currentAccount.palette.primary,
                         borderRadius: BorderRadius.circular(6.0),
                       ),
                       child: const BetterText(
@@ -50,13 +50,13 @@ class FamilyMemberCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
                 decoration: BoxDecoration(
-                  color: Colours.thinGreen,
+                  color: currentAccount.palette.secondary,
                   borderRadius: BorderRadius.circular(12.0),
                 ),
                 child: BetterText(
                   text: profile.isAccountHolder ? "Account holder" : "Family member",
                   size: 11.0,
-                  colour: Colours.green,
+                  colour: currentAccount.palette.primary,
                   weight: 600,
                 ),
               ),
@@ -66,7 +66,7 @@ class FamilyMemberCard extends StatelessWidget {
           BetterText(
             text: "${profile.formattedDob} · ${profile.phone}",
             size: 12.0,
-            colour: const Color.fromARGB(255, 100, 100, 100),
+            colour: currentAccount.palette.textSecondary,
           ),
           const SizedBox(height: 8.0),
           BetterText(text: profile.upcomingBooking, size: 14.0, weight: 500),
@@ -75,7 +75,7 @@ class FamilyMemberCard extends StatelessWidget {
             BetterText(
               text: profile.bookingSubInfo,
               size: 12.0,
-              colour: const Color.fromARGB(255, 100, 100, 100),
+              colour: currentAccount.palette.textSecondary,
             ),
           ],
           const SizedBox(height: 12.0),
@@ -88,22 +88,22 @@ class FamilyMemberCard extends StatelessWidget {
                   text: isActive ? "Viewing profile" : "Switch to profile",
                   weight: 600,
                   size: 13.0,
-                  colour: isActive ? Colours.green : Colors.black,
+                  colour: isActive ? currentAccount.palette.primary : currentAccount.palette.textPrimary,
                 ),
               ),
               GestureDetector(
                 onTap: onManage,
-                child: const BetterText(
+                child: BetterText(
                   text: "Manage",
                   weight: 600,
                   size: 13.0,
-                  colour: Color.fromARGB(255, 80, 80, 80),
+                  colour: currentAccount.palette.textSecondary,
                 ),
               ),
             ],
           ),
           const SizedBox(height: 12.0),
-          const Divider(thickness: 1.0, color: Colours.eggWhite),
+          Divider(thickness: 1.0, color: currentAccount.palette.smoke),
         ],
       ),
     );
@@ -136,18 +136,73 @@ class _ProfilesPageState extends State<ProfilesPage> {
     });
   }
 
+  void _manageProfile(UserProfile profile) {
+    final nameController = TextEditingController(text: profile.name);
+    final phoneController = TextEditingController(text: profile.phone);
+    final dobController = TextEditingController(text: "${profile.dob.year}-${profile.dob.month.toString().padLeft(2, '0')}-${profile.dob.day.toString().padLeft(2, '0')}");
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(text: "Manage ${profile.name}", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: const InputDecoration(labelText: "Full Name"),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: "Phone Number"),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: dobController,
+              decoration: const InputDecoration(labelText: "Date of Birth (YYYY-MM-DD)"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: "Cancel", colour: currentAccount.palette.primary),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                profile.name = nameController.text;
+                profile.phone = phoneController.text;
+                try {
+                  final parsedDate = DateTime.parse(dobController.text);
+                  profile.dob = parsedDate;
+                } catch (_) {}
+              });
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Profile updated successfully")),
+              );
+            },
+            child: BetterText(text: "Save", colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
+        backgroundColor: currentAccount.palette.background,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const BetterText(text: 'Family profiles', size: 30.0),
-            CircleAvatar(
-              backgroundColor: Colours.eggWhite,
-              child: Text(currentAccount.initials),
-            ),
+            BetterText(text: 'Family profiles', size: 30.0, colour: currentAccount.palette.textPrimary),
+            const ProfileIconButton(),
           ],
         ),
       ),
@@ -156,18 +211,18 @@ class _ProfilesPageState extends State<ProfilesPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const BetterText(
+            BetterText(
               text: "Manage the people registered to this account.",
               size: 14.0,
-              colour: Color.fromARGB(255, 100, 100, 100),
+              colour: currentAccount.palette.textSecondary,
             ),
             const SizedBox(height: 16.0),
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                border: Border.all(color: Colours.lightSmoke, width: 1.5),
+                border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
                 borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-                color: Colours.thinGreen,
+                color: currentAccount.palette.secondary,
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -176,12 +231,13 @@ class _ProfilesPageState extends State<ProfilesPage> {
                     text: "${currentAccount.profiles.length} family members",
                     weight: 600,
                     size: 16.0,
+                    colour: currentAccount.palette.textPrimary,
                   ),
                   const SizedBox(height: 4.0),
-                  const BetterText(
+                  BetterText(
                     text: "Jamie is the account holder. Add a new member below.",
                     size: 12.0,
-                    colour: Color.fromARGB(255, 80, 80, 80),
+                    colour: currentAccount.palette.textSecondary,
                   ),
                 ],
               ),
@@ -190,19 +246,20 @@ class _ProfilesPageState extends State<ProfilesPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const BetterText(
+                BetterText(
                   text: "Registered family members",
                   size: 18.0,
                   weight: 600,
+                  colour: currentAccount.palette.textPrimary,
                 ),
                 BetterText(
                   text: "${currentAccount.profiles.length} members",
                   size: 12.0,
-                  colour: const Color.fromARGB(255, 100, 100, 100),
+                  colour: currentAccount.palette.textSecondary,
                 ),
               ],
             ),
-            const Divider(thickness: 1.0, color: Colours.eggWhite, height: 16.0),
+            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
             for (var profile in currentAccount.profiles)
               FamilyMemberCard(
                 profile: profile,
@@ -212,7 +269,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
                     currentAccount.activeProfileId = profile.id;
                   });
                 },
-                onManage: () {},
+                onManage: () => _manageProfile(profile),
               ),
             const SizedBox(height: 12.0),
             SizedBox(
@@ -220,7 +277,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
               child: FilledButton.icon(
                 onPressed: _addNewMember,
                 style: FilledButton.styleFrom(
-                  backgroundColor: Colours.green,
+                  backgroundColor: currentAccount.palette.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),

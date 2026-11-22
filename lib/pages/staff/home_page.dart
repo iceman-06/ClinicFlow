@@ -1,8 +1,8 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/pages/components.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 
-class StaffBookingCard extends StatelessWidget {
+class StaffBookingCard extends StatefulWidget {
   final String startTime;
   final String endTime;
   final String name;
@@ -21,6 +21,79 @@ class StaffBookingCard extends StatelessWidget {
   });
 
   @override
+  State<StaffBookingCard> createState() => _StaffBookingCardState();
+}
+
+class _StaffBookingCardState extends State<StaffBookingCard> {
+  late String currentStatus;
+
+  @override
+  void initState() {
+    super.initState();
+    currentStatus = widget.status;
+  }
+
+  void _showStaffAppointmentPopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: currentAccount.palette.background,
+          title: BetterText(text: "Appointment Details", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BetterText(text: "Client: ${widget.name}", weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 8.0),
+              BetterText(text: "Time: ${widget.startTime} - ${widget.endTime.isEmpty ? 'Ongoing' : widget.endTime}", size: 14.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 6.0),
+              BetterText(text: "Details: ${widget.description}", size: 14.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 12.0),
+              BetterText(text: "Change Status:", weight: 600, size: 13.0, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 6.0),
+              DropdownButton<String>(
+                value: currentStatus,
+                dropdownColor: currentAccount.palette.background,
+                items: ["Checked in", "Expected", "In progress", "No-show", "Done"]
+                    .map((status) => DropdownMenuItem(
+                          value: status,
+                          child: BetterText(text: status, colour: currentAccount.palette.textPrimary),
+                        ))
+                    .toList(),
+                onChanged: (newVal) {
+                  if (newVal != null) {
+                    setDialogState(() {
+                      currentStatus = newVal;
+                    });
+                    setState(() {});
+                  }
+                },
+              ),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceBetween,
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text("Appointment cancelled")),
+                );
+              },
+              child: const BetterText(text: "Cancel Appointment", colour: Colors.red, weight: 600),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: BetterText(text: "Done", colour: currentAccount.palette.primary, weight: 600),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -31,46 +104,49 @@ class StaffBookingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                BetterText(text: startTime, weight: 600, size: 14.0),
+                BetterText(text: widget.startTime, weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
                 BetterText(
-                  text: endTime,
+                  text: widget.endTime,
                   size: 14.0,
-                  colour: const Color.fromARGB(255, 120, 120, 120),
+                  colour: currentAccount.palette.textSecondary,
                 ),
               ],
             ),
-            const VerticalDivider(
+            VerticalDivider(
               thickness: 1.5,
               width: 30.0,
-              color: Colours.eggWhite,
+              color: currentAccount.palette.eggWhite,
             ),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  BetterText(text: name, weight: 600, size: 15.0),
+                  BetterText(text: widget.name, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
                   const SizedBox(height: 2.0),
                   BetterText(
-                    text: description,
+                    text: widget.description,
                     size: 12.0,
-                    colour: const Color.fromARGB(255, 120, 120, 120),
+                    colour: currentAccount.palette.textSecondary,
                   ),
                 ],
               ),
             ),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                BetterText(
-                  text: status,
-                  size: 13.0,
-                  weight: 600,
-                  colour: statusColor ?? Colors.black,
-                ),
-                const SizedBox(width: 4.0),
-                const Icon(Icons.keyboard_arrow_right, size: 20),
-              ],
+            InkWell(
+              onTap: () => _showStaffAppointmentPopup(context),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  BetterText(
+                    text: currentStatus,
+                    size: 13.0,
+                    weight: 600,
+                    colour: widget.statusColor ?? currentAccount.palette.textPrimary,
+                  ),
+                  const SizedBox(width: 4.0),
+                  Icon(Icons.keyboard_arrow_right, size: 20, color: currentAccount.palette.textPrimary),
+                ],
+              ),
             ),
           ],
         ),
@@ -85,15 +161,14 @@ class HomePage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
+        backgroundColor: currentAccount.palette.background,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const BetterText(text: 'Home', size: 30.0),
-            CircleAvatar(
-              backgroundColor: Colours.eggWhite,
-              child: Text(currentAccount.initials),
-            ),
+            BetterText(text: 'Home', size: 30.0, colour: currentAccount.palette.textPrimary),
+            const ProfileIconButton(),
           ],
         ),
       ),
@@ -109,12 +184,13 @@ class HomePage extends StatelessWidget {
                   text: "${getWeekDay(dateTime: DateTime(2026, 11, 9))}, ${getMonth(dateTime: DateTime(2026, 11, 9))} ${getDay(dateTime: DateTime(2026, 11, 9))}",
                   size: 22.0,
                   weight: 700,
+                  colour: currentAccount.palette.textPrimary,
                 ),
                 const SizedBox(height: 2.0),
-                const BetterText(
+                BetterText(
                   text: "8 bookings today · Updated 14:10",
                   size: 12.0,
-                  colour: Color.fromARGB(255, 120, 120, 120),
+                  colour: currentAccount.palette.textSecondary,
                 ),
               ],
             ),
@@ -122,7 +198,7 @@ class HomePage extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                border: Border.all(color: Colours.lightSmoke, width: 1.5),
+                border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
                 borderRadius: BorderRadius.circular(10.0),
               ),
               child: Column(
@@ -131,15 +207,16 @@ class HomePage extends StatelessWidget {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const BetterText(
+                      BetterText(
                         text: "Schedule status",
                         weight: 600,
                         size: 16.0,
+                        colour: currentAccount.palette.textPrimary,
                       ),
-                      const BetterText(
+                      BetterText(
                         text: "2 yet to arrive",
                         size: 12.0,
-                        colour: Color.fromARGB(255, 120, 120, 120),
+                        colour: currentAccount.palette.textSecondary,
                       ),
                     ],
                   ),
@@ -150,17 +227,17 @@ class HomePage extends StatelessWidget {
                       Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const BetterText(
+                          BetterText(
                             text: "3",
                             size: 22.0,
                             weight: 700,
-                            colour: Colours.green,
+                            colour: currentAccount.palette.primary,
                           ),
                           const SizedBox(height: 2.0),
                           Row(
-                            children: const [
-                              BetterText(text: "● ", colour: Colours.green, size: 10.0),
-                              BetterText(text: "Done", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
+                            children: [
+                              BetterText(text: "● ", colour: currentAccount.palette.primary, size: 10.0),
+                              const BetterText(text: "Done", size: 12.0, colour: Color.fromARGB(255, 100, 100, 100)),
                             ],
                           ),
                         ],
@@ -227,19 +304,20 @@ class HomePage extends StatelessWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const BetterText(
+                BetterText(
                   text: "Up next",
                   size: 18.0,
                   weight: 600,
+                  colour: currentAccount.palette.textPrimary,
                 ),
-                const BetterText(
+                BetterText(
                   text: "3 bookings",
                   size: 12.0,
-                  colour: Color.fromARGB(255, 120, 120, 120),
+                  colour: currentAccount.palette.textSecondary,
                 ),
               ],
             ),
-            const Divider(thickness: 1.0, color: Colours.eggWhite, height: 16.0),
+            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
             const StaffBookingCard(
               startTime: "14:30",
               endTime: "15:00",
@@ -264,19 +342,20 @@ class HomePage extends StatelessWidget {
               statusColor: Color.fromARGB(255, 120, 120, 120),
             ),
             const SizedBox(height: 24.0),
-            const BetterText(
+            BetterText(
               text: "On the schedule",
               size: 18.0,
               weight: 600,
+              colour: currentAccount.palette.textPrimary,
             ),
-            const Divider(thickness: 1.0, color: Colours.eggWhite, height: 16.0),
-            const StaffBookingCard(
+            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
+            StaffBookingCard(
               startTime: "14:00",
               endTime: "",
               name: "Mia Patel",
               description: "Follow-up · Room 2",
               status: "In progress",
-              statusColor: Colours.green,
+              statusColor: currentAccount.palette.primary,
             ),
             const StaffBookingCard(
               startTime: "13:00",

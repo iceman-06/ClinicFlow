@@ -1,3 +1,5 @@
+import 'package:clinicflow/models/palette.dart';
+
 enum UserRole { patient, staff }
 
 class UserProfile {
@@ -51,6 +53,7 @@ class Account {
   bool emailReminders;
   bool smsReminders;
   bool virtualCheckInEnabled;
+  String privacyStatusText;
 
   Account({
     required this.id,
@@ -65,9 +68,12 @@ class Account {
     this.emailReminders = true,
     this.smsReminders = true,
     this.virtualCheckInEnabled = true,
+    this.privacyStatusText = "Review",
   });
 
   bool get isStaff => role == UserRole.staff;
+
+  ColorPalette get palette => AppPalettes.fromName(theme);
 
   UserProfile get activeProfile {
     return profiles.firstWhere(
@@ -80,7 +86,7 @@ class Account {
     final active = activeProfile;
     final parts = active.name.trim().split(' ');
     if (parts.length >= 2) {
-      return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+      return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
     return active.name.isNotEmpty ? active.name[0].toUpperCase() : '?';
   }
@@ -98,6 +104,7 @@ final Account currentAccount = Account(
   dateOfBirth: DateTime(1992, 3, 12),
   role: UserRole.patient,
   activeProfileId: 'CL-1042',
+  privacyStatusText: "Review",
   profiles: [
     UserProfile(
       id: 'CL-1042',

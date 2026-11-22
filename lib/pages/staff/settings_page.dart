@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/pages/components.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/pages/client/settings_page.dart' as client_settings;
 
@@ -29,15 +29,14 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
+        backgroundColor: currentAccount.palette.background,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const BetterText(text: 'Settings', size: 30.0),
-            CircleAvatar(
-              backgroundColor: Colours.eggWhite,
-              child: Text(currentAccount.initials),
-            ),
+            BetterText(text: 'Settings', size: 30.0, colour: currentAccount.palette.textPrimary),
+            const ProfileIconButton(),
           ],
         ),
       ),
@@ -48,10 +47,10 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             const SettingsSectionHeader(title: "Staff account"),
             const SizedBox(height: 4.0),
-            const BetterText(
+            BetterText(
               text: "Jamie Chen · Clinic Staff Member",
               size: 13.0,
-              colour: Color.fromARGB(255, 100, 100, 100),
+              colour: currentAccount.palette.textSecondary,
             ),
             const SizedBox(height: 12.0),
             SizedBox(
@@ -60,15 +59,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: _switchRole,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  side: const BorderSide(color: Colours.green, width: 1.5),
+                  side: BorderSide(color: currentAccount.palette.primary, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                icon: const Icon(Icons.swap_horiz, color: Colours.green),
-                label: const BetterText(
+                icon: Icon(Icons.swap_horiz, color: currentAccount.palette.primary),
+                label: BetterText(
                   text: "Switch to Patient View",
-                  colour: Colours.green,
+                  colour: currentAccount.palette.primary,
                   weight: 600,
                   size: 14.0,
                 ),
@@ -91,8 +90,8 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 16.0),
             const SettingsSectionHeader(
-              title: "Color theme",
-              subtitle: "A little color for your everyday care.",
+              title: "Colour theme",
+              subtitle: "A little colour for your everyday care.",
             ),
             const SizedBox(height: 12.0),
             Row(
@@ -118,8 +117,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ? "Selected"
                       : "Choose",
                   isSelected: currentAccount.theme == "Dark",
-                  primaryColor: const Color.fromARGB(255, 60, 60, 60),
-                  secondaryColor: const Color.fromARGB(255, 200, 200, 200),
+                  primaryColor: const Color.fromARGB(255, 30, 144, 255),
+                  secondaryColor: const Color.fromARGB(255, 50, 50, 50),
                   onTap: () {
                     setState(() {
                       currentAccount.theme = "Dark";

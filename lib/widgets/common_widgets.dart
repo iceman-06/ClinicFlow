@@ -9,13 +9,6 @@ import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
 import 'package:clinicflow/pages/staff/profiles_page.dart' as staff_profiles;
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
 
-abstract final class Colours {
-  static const Color green = Color.fromARGB(255, 16, 108, 103);
-  static const Color eggWhite = Color.fromARGB(255, 224, 224, 224);
-  static const Color thinGreen = Color.fromARGB(255, 230, 242, 238);
-  static const Color lightSmoke = Color.fromARGB(255, 224, 224, 224);
-}
-
 class BetterText extends StatelessWidget {
   final String text;
   final double? size;
@@ -37,11 +30,60 @@ class BetterText extends StatelessWidget {
     return Text(
       text,
       style: TextStyle(
-        color: colour ?? Colors.black,
+        color: colour ?? currentAccount.palette.textPrimary,
         fontSize: size ?? 14.0,
         fontWeight: FontWeight(weight ?? 400),
       ),
       textAlign: align ?? TextAlign.start,
+    );
+  }
+}
+
+class ProfileIconButton extends StatelessWidget {
+  const ProfileIconButton({super.key});
+
+  void _showProfilePopup(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(text: "Account Information", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            BetterText(text: "Account Holder: ${currentAccount.name}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            const SizedBox(height: 6.0),
+            BetterText(text: "Selected Profile: ${currentAccount.activeProfile.name}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            const SizedBox(height: 6.0),
+            BetterText(text: "Client ID: ${currentAccount.activeProfile.clientId}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            const SizedBox(height: 6.0),
+            BetterText(text: "Role: ${currentAccount.isStaff ? 'Staff' : 'Patient'}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            const SizedBox(height: 6.0),
+            BetterText(text: "Email: ${currentAccount.email}", size: 14.0, colour: currentAccount.palette.textPrimary),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: "Close", colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => _showProfilePopup(context),
+      child: CircleAvatar(
+        backgroundColor: currentAccount.palette.secondary,
+        child: Text(
+          currentAccount.initials,
+          style: TextStyle(color: currentAccount.palette.textPrimary, fontWeight: FontWeight.bold),
+        ),
+      ),
     );
   }
 }
@@ -52,12 +94,14 @@ class NavigationFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isStaff = currentAccount.isStaff;
+    final palette = currentAccount.palette;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
       decoration: BoxDecoration(
+        color: palette.background,
         border: Border.all(
-          color: Colors.black,
+          color: palette.textPrimary,
           width: 2.0,
           strokeAlign: BorderSide.strokeAlignOutside,
         ),
@@ -76,7 +120,7 @@ class NavigationFooter extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.home, color: Colours.green),
+            icon: Icon(Icons.home, color: palette.primary),
             tooltip: "Home",
             iconSize: 40,
           ),
@@ -91,7 +135,7 @@ class NavigationFooter extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.calendar_month, color: Colours.green),
+            icon: Icon(Icons.calendar_month, color: palette.primary),
             tooltip: "Calendar",
             iconSize: 40,
           ),
@@ -106,7 +150,7 @@ class NavigationFooter extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.people, color: Colours.green),
+            icon: Icon(Icons.people, color: palette.primary),
             tooltip: "Profiles",
             iconSize: 40,
           ),
@@ -121,7 +165,7 @@ class NavigationFooter extends StatelessWidget {
                 ),
               );
             },
-            icon: const Icon(Icons.settings, color: Colours.green),
+            icon: Icon(Icons.settings, color: palette.primary),
             tooltip: "Settings",
             iconSize: 40,
           ),
@@ -148,7 +192,7 @@ class SettingsSectionHeader extends StatelessWidget {
           BetterText(
             text: subtitle!,
             size: 13.0,
-            colour: const Color.fromARGB(255, 120, 120, 120),
+            colour: currentAccount.palette.textSecondary,
           ),
         ],
       ],
@@ -184,13 +228,13 @@ class SettingsTile extends StatelessWidget {
                   text: trailingText,
                   size: 15.0,
                   colour: trailingText == "On" || trailingText == "Enabled"
-                      ? Colors.black
-                      : const Color.fromARGB(255, 120, 120, 120),
+                      ? currentAccount.palette.textPrimary
+                      : currentAccount.palette.textSecondary,
                 ),
               ],
             ),
             const SizedBox(height: 12.0),
-            const Divider(height: 1.0, thickness: 1.0, color: Colours.eggWhite),
+            Divider(height: 1.0, thickness: 1.0, color: currentAccount.palette.smoke),
           ],
         ),
       ),
@@ -224,10 +268,10 @@ class ThemeCard extends StatelessWidget {
         width: 105,
         padding: const EdgeInsets.all(10.0),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: currentAccount.palette.background,
           borderRadius: BorderRadius.circular(12.0),
           border: Border.all(
-            color: isSelected ? Colours.green : Colours.lightSmoke,
+            color: isSelected ? currentAccount.palette.primary : currentAccount.palette.smoke,
             width: isSelected ? 2.0 : 1.5,
           ),
         ),
@@ -272,8 +316,8 @@ class ThemeCard extends StatelessWidget {
               text: status,
               size: 12.0,
               colour: isSelected
-                  ? Colours.green
-                  : const Color.fromARGB(255, 120, 120, 120),
+                  ? currentAccount.palette.primary
+                  : currentAccount.palette.textSecondary,
             ),
           ],
         ),

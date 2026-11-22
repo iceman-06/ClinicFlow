@@ -1,5 +1,5 @@
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/pages/components.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
 
@@ -26,18 +26,84 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
+  void _manageContactDetails() {
+    final emailController = TextEditingController(text: currentAccount.email);
+    final phoneController = TextEditingController(text: currentAccount.phone);
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(text: "Manage Contact Details", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: emailController,
+              decoration: const InputDecoration(labelText: "Email"),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: phoneController,
+              decoration: const InputDecoration(labelText: "Phone"),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: "Cancel", colour: currentAccount.palette.primary),
+          ),
+          TextButton(
+            onPressed: () {
+              setState(() {
+                currentAccount.email = emailController.text;
+                currentAccount.phone = phoneController.text;
+              });
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text("Contact details updated successfully")),
+              );
+            },
+            child: BetterText(text: "Save", colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _reviewPrivacy() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(text: "Privacy Policy", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: BetterText(
+          text: "Your data is securely encrypted and handled in accordance with Canadian healthcare privacy standards (PIPEDA).",
+          size: 14.0,
+          colour: currentAccount.palette.textPrimary,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: "Close", colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
+        backgroundColor: currentAccount.palette.background,
         title: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const BetterText(text: 'Settings', size: 30.0),
-            CircleAvatar(
-              backgroundColor: Colours.eggWhite,
-              child: Text(currentAccount.initials),
-            ),
+            BetterText(text: 'Settings', size: 30.0, colour: currentAccount.palette.textPrimary),
+            const ProfileIconButton(),
           ],
         ),
       ),
@@ -52,7 +118,7 @@ class _SettingsPageState extends State<SettingsPage> {
               text:
                   "${currentAccount.name} · ${currentAccount.profiles.length} registered family members",
               size: 13.0,
-              colour: const Color.fromARGB(255, 100, 100, 100),
+              colour: currentAccount.palette.textSecondary,
             ),
             const SizedBox(height: 12.0),
             SizedBox(
@@ -61,15 +127,15 @@ class _SettingsPageState extends State<SettingsPage> {
                 onPressed: _switchRole,
                 style: OutlinedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  side: const BorderSide(color: Colours.green, width: 1.5),
+                  side: BorderSide(color: currentAccount.palette.primary, width: 1.5),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
                   ),
                 ),
-                icon: const Icon(Icons.swap_horiz, color: Colours.green),
-                label: const BetterText(
+                icon: Icon(Icons.swap_horiz, color: currentAccount.palette.primary),
+                label: BetterText(
                   text: "Switch to Staff View",
-                  colour: Colours.green,
+                  colour: currentAccount.palette.primary,
                   weight: 600,
                   size: 14.0,
                 ),
@@ -120,17 +186,17 @@ class _SettingsPageState extends State<SettingsPage> {
             SettingsTile(
               title: "Contact details",
               trailingText: "Manage",
-              onTap: () {},
+              onTap: _manageContactDetails,
             ),
             SettingsTile(
               title: "Privacy",
-              trailingText: "Review",
-              onTap: () {},
+              trailingText: currentAccount.privacyStatusText,
+              onTap: _reviewPrivacy,
             ),
             const SizedBox(height: 20.0),
             const SettingsSectionHeader(
-              title: "Color theme",
-              subtitle: "A little color for your everyday care.",
+              title: "Colour theme",
+              subtitle: "A little colour for your everyday care.",
             ),
             const SizedBox(height: 12.0),
             Row(
@@ -156,8 +222,8 @@ class _SettingsPageState extends State<SettingsPage> {
                       ? "Selected"
                       : "Choose",
                   isSelected: currentAccount.theme == "Dark",
-                  primaryColor: const Color.fromARGB(255, 60, 60, 60),
-                  secondaryColor: const Color.fromARGB(255, 200, 200, 200),
+                  primaryColor: const Color.fromARGB(255, 30, 144, 255),
+                  secondaryColor: const Color.fromARGB(255, 50, 50, 50),
                   onTap: () {
                     setState(() {
                       currentAccount.theme = "Dark";
