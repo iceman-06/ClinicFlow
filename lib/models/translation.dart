@@ -155,8 +155,8 @@ class AppLocalizations {
       "full_name_min": "Full name (at least two words)",
       "newly_added_profile": "Newly added profile",
       "bring_appointment_forward": "Devancer votre rendez-vous du %r %r (%r)",
-      "appointment_in_minutes": "Rendez-vous dans %r minutes",
-      "medication_reminder": "Rappel de médicament",
+      "appointment_in_minutes": "Appointment in %r minutes",
+      "medication_reminder": "Medication Reminder",
       "error_valid_email": "Error: Please enter a valid email address.",
       "error_name_two_words": "Error: Name must be at least two words.",
       "error_password_length": "Error: Password must be at least 5 characters.",
@@ -211,6 +211,7 @@ class AppLocalizations {
       "remove_profile_tooltip": "Remove profile",
       "confirm_remove": "Are you sure you want to remove %r?",
       "thirty_minutes": "30 min",
+      "feedback": "Feedback",
     },
     AppLanguage.french: {
       "home": "Accueil",
@@ -421,6 +422,7 @@ class AppLocalizations {
       "remove_profile_tooltip": "Supprimer le profil",
       "confirm_remove": "Voulez-vous vraiment supprimer %r?",
       "thirty_minutes": "30 min",
+      "feedback": "Feedback",
     },
   };
 

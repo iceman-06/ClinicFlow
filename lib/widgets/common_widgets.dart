@@ -109,18 +109,45 @@ class ProfileIconButton extends StatelessWidget {
 class HelpMenuButton extends StatelessWidget {
   const HelpMenuButton({super.key});
 
+  static const List<Map<String, String>> menuItems = [
+    {
+      'value': 'help',
+      'label': 'help',
+      'url': 'https://caiot.co',
+    },
+    {
+      'value': 'feedback',
+      'label': 'feedback',
+      'url': 'https://forms.gle/7DEC4k6LXoJmNVrC8',
+    },
+  ];
+
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
       tooltip: currentAccount.t('help'),
-      icon: Icon(Icons.arrow_drop_down, color: currentAccount.palette.textPrimary, size: 30),
+      icon: Icon(
+        Icons.arrow_drop_down,
+        color: currentAccount.palette.textPrimary,
+        size: 30,
+      ),
       onSelected: (value) async {
-        if (value == 'help') {
-          final uri = Uri.parse('https://caiot.co');
-          await launchUrl(uri, mode: LaunchMode.externalApplication);
-        }
+        final item = menuItems.firstWhere(
+          (item) => item['value'] == value,
+        );
+
+        final uri = Uri.parse(item['url']!);
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication,
+        );
       },
-      itemBuilder: (_) => [PopupMenuItem<String>(value: 'help', child: Text(currentAccount.t('help')))],
+      itemBuilder: (_) => menuItems.map((item) {
+        return PopupMenuItem<String>(
+          value: item['value'],
+          child: Text(currentAccount.t(item['label']!)),
+        );
+      }).toList(),
     );
   }
 }
