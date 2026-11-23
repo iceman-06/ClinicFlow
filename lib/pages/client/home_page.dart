@@ -23,20 +23,20 @@ class UpcomingAppointment extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Appointment Details", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('appointment_details'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            BetterText(text: "Patient: $name", weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('patient_label', replacements: [name]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 8.0),
-            BetterText(text: "Date: ${getWeekDay(dateTime: date)}, ${getMonth(dateTime: date)} ${getDay(dateTime: date)} ${date.year}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('date_label', replacements: ["${getWeekDay(dateTime: date)}, ${getMonth(dateTime: date)} ${getDay(dateTime: date)} ${date.year}"]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Time: ${getTime(timeOfDay: TimeOfDay(hour: date.hour, minute: date.minute))} (${duration.inMinutes} min)", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('time_label', replacements: ["${getTime(timeOfDay: TimeOfDay(hour: date.hour, minute: date.minute))} (${duration.inMinutes} min)"]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Description: $description", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('description_label', replacements: [description]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Status: $status", size: 14.0, colour: currentAccount.palette.primary),
+            BetterText(text: currentAccount.t('status_label', replacements: [status]), size: 14.0, colour: currentAccount.palette.primary),
           ],
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -45,10 +45,10 @@ class UpcomingAppointment extends StatelessWidget {
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Appointment cancelled successfully")),
+                SnackBar(content: Text(currentAccount.t('appointment_cancelled_success'))),
               );
             },
-            child: const BetterText(text: "Cancel Appointment", colour: Colors.red, weight: 600),
+            child: BetterText(text: currentAccount.t('cancel_appointment'), colour: Colors.red, weight: 600),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -163,7 +163,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Check-in Pass", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('check_in_pass'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -195,7 +195,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Opening Review", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('opening_review'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: BetterText(
           text: "Available opening on Tue, 10 Nov • 09:00-09:30. Would you like to bring your appointment forward?",
           size: 14.0,
@@ -210,10 +210,10 @@ class _HomePageState extends State<HomePage> {
             onPressed: () {
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Opening claimed successfully!")),
+                SnackBar(content: Text(currentAccount.t('opening_claimed'))),
               );
             },
-            child: BetterText(text: "Claim Opening", colour: currentAccount.palette.primary, weight: 600),
+            child: BetterText(text: currentAccount.t('claim_opening'), colour: currentAccount.palette.primary, weight: 600),
           ),
         ],
       ),
@@ -233,15 +233,15 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: palette.background,
       appBar: AppBar(
         backgroundColor: palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('home'), size: 30.0, colour: palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('home'), size: 24.0, colour: palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'home', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -283,7 +283,7 @@ class _HomePageState extends State<HomePage> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           BetterText(text: "Jamie Chen", weight: 600, colour: palette.textPrimary),
-                          BetterText(text: "Follow-up appointment • 14:30-15:00", colour: palette.textSecondary),
+                          BetterText(text: currentAccount.t('followup_appointment', replacements: ['14:30–15:00']), colour: palette.textSecondary),
                         ],
                       ),
                       _checkedIn
@@ -411,7 +411,7 @@ class _HomePageState extends State<HomePage> {
                     colour: palette.textPrimary,
                   ),
                   BetterText(
-                    text: "Bring your 12 Feb specialist appointment forward.",
+                    text: currentAccount.t("bring_appointment_forward", replacements: ["12", "Feb", "specialist consultation"]),
                     colour: palette.textSecondary,
                   ),
                   TextButton(
@@ -430,7 +430,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'home'),
     );
   }

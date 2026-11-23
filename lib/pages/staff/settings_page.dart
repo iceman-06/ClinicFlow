@@ -40,15 +40,15 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('settings'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('settings'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'settings', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,7 +115,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 16.0),
             SettingsSectionHeader(
               title: currentAccount.t('colour_theme'),
-              subtitle: "A little colour for your everyday care.",
+              subtitle: currentAccount.t('theme_subtitle'),
             ),
             const SizedBox(height: 12.0),
             Row(
@@ -168,7 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24.0),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'settings'),
     );
   }

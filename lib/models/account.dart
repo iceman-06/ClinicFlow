@@ -1,4 +1,3 @@
-import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/models/palette.dart';
 import 'package:clinicflow/models/translation.dart';
 
@@ -75,8 +74,15 @@ class UserProfile {
     }
   }
 
+  bool get isAdult {
+    final today = DateTime.now();
+    var age = today.year - dob.year;
+    if (today.month < dob.month || (today.month == dob.month && today.day < dob.day)) age--;
+    return age >= 18;
+  }
+
   String get formattedDob {
-    return "DOB ${dob.day} ${_getMonthName(dob.month)} ${dob.year}";
+    return currentAccount.t("dob_short", replacements: ["${dob.day} ${_getMonthName(dob.month)} ${dob.year}"]);
   }
 
   String _getMonthName(int month) {
@@ -183,13 +189,13 @@ class Announcement {
     return [
       Announcement(
         id: 'ann-1',
-        title: "Appointment in 20 minutes",
-        description: "Jamie Chen • Today, 14:30-15:00",
+        title: currentAccount.t("appointment_in_minutes", replacements: ["20"]),
+        description: "Jamie Chen • ${currentAccount.t("today")}, 14:30-15:00",
       ),
       Announcement(
         id: 'ann-2',
-        title: "Medication reminder",
-        description: "Remember to follow your prescribed schedule",
+        title: currentAccount.t("medication_reminder"),
+        description: currentAccount.t("remember_medication"),
       ),
     ];
   }
@@ -316,7 +322,7 @@ class Account {
     language = language == AppLanguage.english ? AppLanguage.french : AppLanguage.english;
   }
 
-  String t(String key) => AppLocalizations.get(language, key);
+  String t(String key, {List<String>? replacements}) => AppLocalizations.get(language, key, replacements);
 }
 
 late Account currentAccount;

@@ -64,12 +64,24 @@ class FamilyMemberCard extends StatelessWidget {
                       weight: 600,
                     ),
                   ),
+                  const SizedBox(width: 6.0),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                    decoration: BoxDecoration(
+                      color: currentAccount.palette.smoke.withAlpha(100),
+                      borderRadius: BorderRadius.circular(12.0),
+                    ),
+                    child: BetterText(
+                      text: profile.isAdult ? currentAccount.t('adult') : currentAccount.t('child'),
+                      size: 11.0, colour: currentAccount.palette.textPrimary, weight: 600,
+                    ),
+                  ),
                   if (!profile.isAccountHolder && onDelete != null) ...[
                     const SizedBox(width: 8.0),
                     IconButton(
                       icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
                       onPressed: onDelete,
-                      tooltip: "Remove profile",
+                      tooltip: currentAccount.t('remove_profile_tooltip'),
                     ),
                   ],
                 ],
@@ -157,8 +169,8 @@ class _ProfilesPageState extends State<ProfilesPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Remove Profile", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
-        content: BetterText(text: "Are you sure you want to remove ${profile.name}?", size: 14.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('remove_profile'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        content: BetterText(text: currentAccount.t('confirm_remove', replacements: [profile.name]), size: 14.0, colour: currentAccount.palette.textPrimary),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -174,10 +186,10 @@ class _ProfilesPageState extends State<ProfilesPage> {
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Profile removed successfully")),
+                SnackBar(content: Text(currentAccount.t('profile_removed'))),
               );
             },
-            child: const BetterText(text: "Remove", colour: Colors.red, weight: 600),
+            child: BetterText(text: currentAccount.t('remove'), colour: Colors.red, weight: 600),
           ),
         ],
       ),
@@ -199,17 +211,17 @@ class _ProfilesPageState extends State<ProfilesPage> {
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(labelText: "Full Name (Two words min)"),
+              decoration: InputDecoration(labelText: currentAccount.t('full_name_min')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: phoneController,
-              decoration: const InputDecoration(labelText: "Secondary Phone (10 digits)"),
+              decoration: InputDecoration(labelText: currentAccount.t('secondary_phone')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: dobController,
-              decoration: const InputDecoration(labelText: "Date of Birth (YYYY-MM-DD)"),
+              decoration: InputDecoration(labelText: currentAccount.t('dob_format')),
             ),
           ],
         ),
@@ -223,7 +235,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
               final nameParts = nameController.text.trim().split(RegExp(r'\s+'));
               if (nameParts.length < 2) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error: Name must be at least two words.")),
+                  SnackBar(content: Text(currentAccount.t('error_name_two_words'))),
                 );
                 return;
               }
@@ -231,7 +243,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
               final cleanPhone = phoneController.text.replaceAll(RegExp(r'\D'), '');
               if (cleanPhone.length != 10) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error: Phone number must be exactly 10 digits.")),
+                  SnackBar(content: Text(currentAccount.t('error_phone_ten'))),
                 );
                 return;
               }
@@ -241,7 +253,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
                 parsedDate = DateTime.parse(dobController.text);
               } catch (_) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error: Date of Birth must be in YYYY-MM-DD format.")),
+                  SnackBar(content: Text(currentAccount.t('error_dob_format'))),
                 );
                 return;
               }
@@ -253,7 +265,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Profile updated successfully")),
+                SnackBar(content: Text(currentAccount.t('profile_updated'))),
               );
             },
             child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
@@ -270,15 +282,15 @@ class _ProfilesPageState extends State<ProfilesPage> {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('family_profiles'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('family_profiles'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -368,7 +380,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
             const SizedBox(height: 24.0),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
     );
   }

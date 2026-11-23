@@ -39,18 +39,18 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: currentAccount.palette.background,
-          title: BetterText(text: "Appointment Details", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+          title: BetterText(text: currentAccount.t('appointment_details'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BetterText(text: "Client: ${widget.name}", weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('client_label', replacements: [widget.name]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 8.0),
-              BetterText(text: "Time: ${widget.startTime} - ${widget.endTime.isEmpty ? 'Ongoing' : widget.endTime}", size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('time_label', replacements: ["${widget.startTime} – ${widget.endTime.isEmpty ? currentAccount.t('ongoing') : widget.endTime}"]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
-              BetterText(text: "Details: ${widget.description}", size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('description_label', replacements: [widget.description]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 12.0),
-              BetterText(text: "Change Status:", weight: 600, size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('change_status'), weight: 600, size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
               DropdownButton<String>(
                 value: currentStatus,
@@ -78,10 +78,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
               onPressed: () {
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Appointment cancelled")),
+                  SnackBar(content: Text(currentAccount.t('appointment_cancelled'))),
                 );
               },
-              child: const BetterText(text: "Cancel Appointment", colour: Colors.red, weight: 600),
+              child: BetterText(text: currentAccount.t('cancel_appointment'), colour: Colors.red, weight: 600),
             ),
             TextButton(
               onPressed: () => Navigator.pop(ctx),
@@ -164,15 +164,15 @@ class HomePage extends StatelessWidget {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('home'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('home'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'home', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -369,7 +369,7 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 24.0),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'home'),
     );
   }

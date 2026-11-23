@@ -126,12 +126,12 @@ class _ProfilesPageState extends State<ProfilesPage> {
             children: [
               BetterText(text: currentAccount.t('primary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
               const SizedBox(height: 4.0),
-              BetterText(text: "Email: ${currentAccount.primaryEmail}", size: 13.0, colour: currentAccount.palette.textPrimary),
-              BetterText(text: "Phone: ${currentAccount.primaryPhone}", size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('email_label', replacements: [currentAccount.primaryEmail]), size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('phone_label', replacements: [currentAccount.primaryPhone]), size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 12.0),
               BetterText(text: currentAccount.t('secondary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
               const SizedBox(height: 4.0),
-              BetterText(text: "Phone: ${profile.phone}", size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('phone_label', replacements: [profile.phone]), size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 16.0),
               BetterText(text: currentAccount.t('notes'), weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
@@ -161,7 +161,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Client notes updated successfully")),
+                SnackBar(content: Text(currentAccount.t('client_notes_updated'))),
               );
             },
             child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
@@ -178,15 +178,15 @@ class _ProfilesPageState extends State<ProfilesPage> {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('profiles'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('profiles'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -223,7 +223,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
             const SizedBox(height: 24.0),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
     );
   }

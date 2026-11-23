@@ -9,6 +9,7 @@ import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
 import 'package:clinicflow/pages/staff/profiles_page.dart' as staff_profiles;
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
 import 'package:clinicflow/main.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class BetterText extends StatelessWidget {
   final String text;
@@ -48,22 +49,22 @@ class ProfileIconButton extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Account Information", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('account_information'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            BetterText(text: "Account Holder: ${currentAccount.name}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('account_holder_label', replacements: [currentAccount.name]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Selected Profile: ${currentAccount.activeProfile.name}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('selected_profile', replacements: [currentAccount.activeProfile.name]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Client ID: ${currentAccount.activeProfile.clientId}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('client_id', replacements: [currentAccount.activeProfile.clientId]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
             BetterText(text: "${currentAccount.t('account_type')}: ${currentAccount.isStaff ? currentAccount.t('clinic_staff_member') : 'Patient'}", size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Primary Email: ${currentAccount.primaryEmail}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('primary_email_value', replacements: [currentAccount.primaryEmail]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "Primary Phone: ${currentAccount.primaryPhone}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('primary_phone_value', replacements: [currentAccount.primaryPhone]), size: 14.0, colour: currentAccount.palette.textPrimary),
           ],
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -94,7 +95,7 @@ class ProfileIconButton extends StatelessWidget {
     return GestureDetector(
       onTap: () => _showProfilePopup(context),
       child: CircleAvatar(
-        backgroundColor: palette.secondary,
+        backgroundColor: currentAccount.isStaff ? const Color(0xFF2867B2) : const Color(0xFF23866D),
         child: Text(
           currentAccount.initials,
           style: TextStyle(color: palette.textPrimary, fontWeight: FontWeight.bold),
@@ -102,6 +103,47 @@ class ProfileIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+
+class HelpMenuButton extends StatelessWidget {
+  const HelpMenuButton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<String>(
+      tooltip: currentAccount.t('help'),
+      icon: Icon(Icons.arrow_drop_down, color: currentAccount.palette.textPrimary, size: 30),
+      onSelected: (value) async {
+        if (value == 'help') {
+          final uri = Uri.parse('https://caiot.co');
+          await launchUrl(uri, mode: LaunchMode.externalApplication);
+        }
+      },
+      itemBuilder: (_) => [PopupMenuItem<String>(value: 'help', child: Text(currentAccount.t('help')))],
+    );
+  }
+}
+
+void navigateBySwipe(BuildContext context, String currentPage, DragEndDetails details) {
+  final velocity = details.primaryVelocity ?? 0;
+  if (velocity.abs() < 250) return;
+  const pages = ['home', 'calendar', 'profiles', 'settings'];
+  final index = pages.indexOf(currentPage);
+  final next = (index + (velocity < 0 ? 1 : -1)).clamp(0, pages.length - 1).toInt();
+  if (next == index) return;
+  final staff = currentAccount.isStaff;
+  late final Widget page;
+  if (pages[next] == 'home') {
+    page = staff ? const staff_home.HomePage() : const client_home.HomePage();
+  } else if (pages[next] == 'calendar') {
+    page = staff ? const staff_calendar.CalendarPage() : const client_calendar.CalendarPage();
+  } else if (pages[next] == 'profiles') {
+    page = staff ? const staff_profiles.ProfilesPage() : const client_profiles.ProfilesPage();
+  } else {
+    page = staff ? const staff_settings.SettingsPage() : const client_settings.SettingsPage();
+  }
+  Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => page));
 }
 
 class NavigationFooter extends StatelessWidget {
@@ -361,24 +403,24 @@ String getWeekDay({bool truncate = false, DateTime? dateTime}) {
   dateTime ??= DateTime.now();
   if (truncate) {
     switch (dateTime.weekday) {
-      case 1: return "Mon";
-      case 2: return "Tue";
-      case 3: return "Wed";
-      case 4: return "Thu";
-      case 5: return "Fri";
-      case 6: return "Sat";
-      case 7: return "Sun";
+      case 1: return currentAccount.t("mon");
+      case 2: return currentAccount.t("tue");
+      case 3: return currentAccount.t("wed");
+      case 4: return currentAccount.t("thu");
+      case 5: return currentAccount.t("fri");
+      case 6: return currentAccount.t("sat");
+      case 7: return currentAccount.t("sun");
       default: return "Err";
     }
   } else {
     switch (dateTime.weekday) {
-      case 1: return "Monday";
-      case 2: return "Tuesday";
-      case 3: return "Wednesday";
-      case 4: return "Thursday";
-      case 5: return "Friday";
-      case 6: return "Saturday";
-      case 7: return "Sunday";
+      case 1: return currentAccount.t("monday");
+      case 2: return currentAccount.t("tuesday");
+      case 3: return currentAccount.t("wednesday");
+      case 4: return currentAccount.t("thursday");
+      case 5: return currentAccount.t("friday");
+      case 6: return currentAccount.t("saturday");
+      case 7: return currentAccount.t("sunday");
       default: return "Error";
     }
   }
@@ -388,34 +430,34 @@ String getMonth({bool truncate = false, DateTime? dateTime}) {
   dateTime ??= DateTime.now();
   if (truncate) {
     switch (dateTime.month) {
-      case 1: return "Jan";
-      case 2: return "Feb";
-      case 3: return "Mar";
-      case 4: return "Apr";
-      case 5: return "May";
-      case 6: return "Jun";
-      case 7: return "Jul";
-      case 8: return "Aug";
-      case 9: return "Sep";
-      case 10: return "Oct";
-      case 11: return "Nov";
-      case 12: return "Dec";
+      case 1: return currentAccount.t("jan");
+      case 2: return currentAccount.t("feb");
+      case 3: return currentAccount.t("mar");
+      case 4: return currentAccount.t("apr");
+      case 5: return currentAccount.t("may");
+      case 6: return currentAccount.t("jun");
+      case 7: return currentAccount.t("jul");
+      case 8: return currentAccount.t("aug");
+      case 9: return currentAccount.t("sep");
+      case 10: return currentAccount.t("oct");
+      case 11: return currentAccount.t("nov");
+      case 12: return currentAccount.t("dec");
       default: return "Err";
     }
   } else {
     switch (dateTime.month) {
-      case 1: return "January";
-      case 2: return "February";
-      case 3: return "March";
-      case 4: return "April";
-      case 5: return "May";
-      case 6: return "June";
-      case 7: return "July";
-      case 8: return "August";
-      case 9: return "September";
-      case 10: return "October";
-      case 11: return "November";
-      case 12: return "December";
+      case 1: return currentAccount.t("january");
+      case 2: return currentAccount.t("february");
+      case 3: return currentAccount.t("march");
+      case 4: return currentAccount.t("april");
+      case 5: return currentAccount.t("may");
+      case 6: return currentAccount.t("june");
+      case 7: return currentAccount.t("july");
+      case 8: return currentAccount.t("august");
+      case 9: return currentAccount.t("september");
+      case 10: return currentAccount.t("october");
+      case 11: return currentAccount.t("november");
+      case 12: return currentAccount.t("december");
       default: return "Error";
     }
   }

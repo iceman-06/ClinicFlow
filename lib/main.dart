@@ -1,5 +1,6 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 
 void main() {
@@ -32,6 +33,12 @@ class _AuthPageState extends State<AuthPage> {
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
 
+  @override
+  void initState() {
+    super.initState();
+    loadDefaultAccount();
+  }
+
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
@@ -43,7 +50,7 @@ class _AuthPageState extends State<AuthPage> {
 
     if (!_isValidEmail(email)) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error: Please enter a valid email address.")),
+        SnackBar(content: Text(currentAccount.t('error_valid_email'))),
       );
       return;
     }
@@ -51,26 +58,28 @@ class _AuthPageState extends State<AuthPage> {
     if (!_isLogin) {
       if (name.split(RegExp(r'\s+')).length < 2) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Name must be at least two words.")),
+          SnackBar(content: Text(currentAccount.t('error_name_two_words'))),
         );
         return;
       }
       if (password.length < 5) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Password must be at least 5 characters.")),
+          SnackBar(content: Text(currentAccount.t('error_password_length'))),
         );
         return;
       }
     } else {
       if (password.isEmpty) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Error: Please enter your password.")),
+          SnackBar(content: Text(currentAccount.t('error_password_required'))),
         );
         return;
       }
     }
 
+    final selectedLanguage = currentAccount.language;
     loadDefaultAccount();
+    currentAccount.language = selectedLanguage;
     currentAccount.primaryEmail = email;
     if (!_isLogin && name.isNotEmpty) {
       currentAccount.name = name;
@@ -84,7 +93,9 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   void _loginAsDefault() {
+    final selectedLanguage = currentAccount.language;
     loadDefaultAccount();
+    currentAccount.language = selectedLanguage;
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(builder: (_) => const client_home.HomePage()),
@@ -92,7 +103,9 @@ class _AuthPageState extends State<AuthPage> {
   }
 
   void _loginWithGoogle() {
+    final selectedLanguage = currentAccount.language;
     loadDefaultAccount();
+    currentAccount.language = selectedLanguage;
     currentAccount.primaryEmail = "jamie.chen@gmail.com";
     Navigator.pushReplacement(
       context,
@@ -102,7 +115,6 @@ class _AuthPageState extends State<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
-    loadDefaultAccount();
     final palette = currentAccount.palette;
 
     return Scaffold(
@@ -121,7 +133,16 @@ class _AuthPageState extends State<AuthPage> {
                   color: palette.primary,
                 ),
               ),
-              const SizedBox(height: 32),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: () => setState(() => currentAccount.toggleLanguage()),
+                  icon: const Icon(Icons.language),
+                  label: Text(currentAccount.language == AppLanguage.english ? 'English' : 'Français'),
+                ),
+              ),
+              const SizedBox(height: 20),
               if (!_isLogin) ...[
                 TextField(
                   controller: _nameController,
@@ -198,7 +219,7 @@ class _AuthPageState extends State<AuthPage> {
                   backgroundColor: palette.secondary.withAlpha(50),
                 ),
                 child: Text(
-                  _isLogin ? "Don't have an account? Sign Up" : "Already have an account? Login",
+                  _isLogin ? currentAccount.t('signup_prompt') : currentAccount.t('login_prompt'),
                   style: TextStyle(color: palette.primary, fontWeight: FontWeight.bold),
                 ),
               ),

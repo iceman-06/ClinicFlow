@@ -229,29 +229,40 @@ class WeekCalendarView extends StatelessWidget {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
+                              final slotDate = d["date"] as DateTime;
+                              final parts = hour.split(':').map(int.parse).toList();
+                              final slotDateTime = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]);
+                              if (slotDateTime.isBefore(DateTime.now())) return;
                               onDaySelected(d["day"] as int);
-                              onSlotSelected(d["date"] as DateTime, hour);
+                              onSlotSelected(slotDate, hour);
                             },
-                            child: Container(
+                            child: Builder(builder: (context) {
+                              final slotDate = d["date"] as DateTime;
+                              final parts = hour.split(':').map(int.parse).toList();
+                              final isPastSlot = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]).isBefore(DateTime.now());
+                              return Container(
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: currentAccount.palette.smoke,
                                   width: 0.5,
                                 ),
-                                color: (selectedDay == d["day"] && selectedSlotTime == hour)
-                                    ? currentAccount.palette.primary
-                                    : Colors.transparent,
+                                color: isPastSlot
+                                    ? currentAccount.palette.smoke.withAlpha(100)
+                                    : ((selectedDay == d["day"] && selectedSlotTime == hour)
+                                        ? currentAccount.palette.primary
+                                        : Colors.transparent),
                               ),
                               alignment: Alignment.center,
                               child: (selectedDay == d["day"] && selectedSlotTime == hour)
                                   ? BetterText(
                                       text: hour,
                                       size: 10.0,
-                                      colour: Colors.white,
+                                      colour: isPastSlot ? currentAccount.palette.textSecondary : Colors.white,
                                       weight: 600,
                                     )
                                   : const SizedBox.shrink(),
-                            ),
+                            );
+                            }),
                           ),
                         ),
                     ],
@@ -280,24 +291,26 @@ class _CalendarPageState extends State<CalendarPage> {
   String _selectedSlotTime = "09:00";
   String _selectedApptType = "Follow-up";
   String _selectedApptLength = "30 minutes";
+  final TextEditingController _bookingNotesController = TextEditingController();
 
   void _showBookingMenu(BuildContext context, DateTime date, String slot) {
     _selectedApptType = currentAccount.t('follow_up');
     _selectedApptLength = "30 minutes";
+    _bookingNotesController.clear();
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           backgroundColor: currentAccount.palette.background,
-          title: BetterText(text: "Book Appointment", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+          title: BetterText(text: currentAccount.t('book_appointment'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BetterText(text: "Profile: ${currentAccount.activeProfile.name}", weight: 600, size: 15.0, colour: currentAccount.palette.primary),
+              BetterText(text: currentAccount.t('profile_label', replacements: [currentAccount.activeProfile.name]), weight: 600, size: 15.0, colour: currentAccount.palette.primary),
               const SizedBox(height: 8.0),
-              BetterText(text: "Date: ${getMonth(dateTime: date)} $_selectedDay, ${date.year} at $slot", size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('date_label', replacements: ["${getMonth(dateTime: date)} $_selectedDay, ${date.year} à $slot"]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 12.0),
               BetterText(text: currentAccount.t('appointment_type'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
               DropdownButton<String>(
@@ -332,6 +345,18 @@ class _CalendarPageState extends State<CalendarPage> {
                   }
                 },
               ),
+              const SizedBox(height: 12.0),
+              BetterText(text: currentAccount.t('notes'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
+              const SizedBox(height: 6.0),
+              TextField(
+                controller: _bookingNotesController,
+                minLines: 2,
+                maxLines: 4,
+                decoration: InputDecoration(
+                  hintText: currentAccount.t('booking_notes_hint'),
+                  border: const OutlineInputBorder(),
+                ),
+              ),
             ],
           ),
           actions: [
@@ -341,9 +366,16 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
             TextButton(
               onPressed: () {
+                final bookingNotes = _bookingNotesController.text.trim();
+                if (bookingNotes.isNotEmpty) {
+                  final existingNotes = currentAccount.activeProfile.notes.trim();
+                  currentAccount.activeProfile.notes = existingNotes.isEmpty
+                      ? bookingNotes
+                      : '$existingNotes\nAppointment note: $bookingNotes';
+                }
                 Navigator.pop(ctx);
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Appointment booked successfully!")),
+                  SnackBar(content: Text(currentAccount.t('appointment_booked'))),
                 );
               },
               child: BetterText(text: currentAccount.t('book'), colour: currentAccount.palette.primary, weight: 600),
@@ -352,6 +384,12 @@ class _CalendarPageState extends State<CalendarPage> {
         ),
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    _bookingNotesController.dispose();
+    super.dispose();
   }
 
   @override
@@ -378,6 +416,8 @@ class _CalendarPageState extends State<CalendarPage> {
         : DateTime(targetDate.year, targetDate.month, _selectedDay);
 
     final bool isPastDate = selectedDateTime.isBefore(DateTime(now.year, now.month, now.day));
+    final slotParts = _selectedSlotTime.split(':').map(int.parse).toList();
+    final bool isPastSlot = DateTime(selectedDateTime.year, selectedDateTime.month, selectedDateTime.day, slotParts[0], slotParts[1]).isBefore(now);
 
     final weekMonday = selectedDateTime.subtract(Duration(days: selectedDateTime.weekday - 1));
     final weekSunday = weekMonday.add(const Duration(days: 6));
@@ -386,15 +426,15 @@ class _CalendarPageState extends State<CalendarPage> {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('calendar'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('calendar'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'calendar', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -412,7 +452,13 @@ class _CalendarPageState extends State<CalendarPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    TextButton(
+                    OutlinedButton(
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                        side: BorderSide(color: currentAccount.palette.primary, width: 1.3),
+                        backgroundColor: currentAccount.palette.secondary,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
+                      ),
                       onPressed: () {
                         setState(() {
                           if (!_isWeekView) {
@@ -511,24 +557,32 @@ class _CalendarPageState extends State<CalendarPage> {
               weight: 600,
             ),
             const SizedBox(height: 4.0),
-            BetterText(
-              text: "$_selectedSlotTime · ${currentAccount.activeProfile.name}",
-              size: 13.0,
-              colour: currentAccount.palette.textSecondary,
-            ),
-            const SizedBox(height: 2.0),
-            BetterText(
-              text: currentAccount.t('selected_opening_slot'),
-              size: 12.0,
-              colour: currentAccount.palette.textSecondary,
+            Row(
+              children: [
+                Expanded(
+                  child: BetterText(
+                    text: "$_selectedSlotTime · ${currentAccount.activeProfile.name} · ${currentAccount.t('selected_opening_slot')}",
+                    size: 13.0,
+                    colour: currentAccount.palette.textSecondary,
+                  ),
+                ),
+                PopupMenuButton<String>(
+                  icon: Icon(Icons.keyboard_arrow_right, color: currentAccount.palette.textPrimary),
+                  tooltip: currentAccount.t('change_profile'),
+                  onSelected: (profileId) => setState(() => currentAccount.activeProfileId = profileId),
+                  itemBuilder: (_) => currentAccount.profiles.map((profile) => PopupMenuItem<String>(
+                    value: profile.id, child: Text(profile.name),
+                  )).toList(),
+                ),
+              ],
             ),
             const SizedBox(height: 12.0),
             SizedBox(
               width: double.infinity,
               child: FilledButton.icon(
-                onPressed: isPastDate ? null : () => _showBookingMenu(context, selectedDateTime, _selectedSlotTime),
+                onPressed: (isPastDate || isPastSlot) ? null : () => _showBookingMenu(context, selectedDateTime, _selectedSlotTime),
                 style: FilledButton.styleFrom(
-                  backgroundColor: isPastDate ? Colors.grey : currentAccount.palette.primary,
+                  backgroundColor: (isPastDate || isPastSlot) ? Colors.grey : currentAccount.palette.primary,
                   padding: const EdgeInsets.symmetric(vertical: 16.0),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
@@ -545,7 +599,7 @@ class _CalendarPageState extends State<CalendarPage> {
             ),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'calendar'),
     );
   }

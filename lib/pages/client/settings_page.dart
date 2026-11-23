@@ -41,18 +41,18 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Manage Primary Contact Details", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('primary_contact_manage'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: emailController,
-              decoration: const InputDecoration(labelText: "Primary Email"),
+              decoration: InputDecoration(labelText: currentAccount.t('primary_email')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: phoneController,
-              decoration: const InputDecoration(labelText: "Primary Phone (10 digits)"),
+              decoration: InputDecoration(labelText: currentAccount.t('primary_phone')),
             ),
           ],
         ),
@@ -66,7 +66,7 @@ class _SettingsPageState extends State<SettingsPage> {
               final cleanPhone = phoneController.text.replaceAll(RegExp(r'\D'), '');
               if (cleanPhone.length != 10) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text("Error: Primary phone number must be exactly 10 digits.")),
+                  SnackBar(content: Text(currentAccount.t('error_primary_phone'))),
                 );
                 return;
               }
@@ -77,7 +77,7 @@ class _SettingsPageState extends State<SettingsPage> {
               });
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text("Primary contact details updated successfully")),
+                SnackBar(content: Text(currentAccount.t('primary_contact_updated'))),
               );
             },
             child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
@@ -92,9 +92,9 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "Privacy Policy", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
+        title: BetterText(text: currentAccount.t('privacy_policy'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: BetterText(
-          text: "Your data is securely encrypted and handled in accordance with Canadian healthcare privacy standards (PIPEDA).",
+          text: currentAccount.t('privacy_scope_notice'),
           size: 14.0,
           colour: currentAccount.palette.textPrimary,
         ),
@@ -115,15 +115,15 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
         backgroundColor: currentAccount.palette.background,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            BetterText(text: currentAccount.t('settings'), size: 30.0, colour: currentAccount.palette.textPrimary),
-            const ProfileIconButton(),
-          ],
-        ),
+        centerTitle: true,
+        leadingWidth: 56,
+        leading: const HelpMenuButton(),
+        title: BetterText(text: currentAccount.t('settings'), size: 24.0, colour: currentAccount.palette.textPrimary),
+        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: SingleChildScrollView(
+      body: GestureDetector(
+        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'settings', details),
+        child: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -220,7 +220,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 20.0),
             SettingsSectionHeader(
               title: currentAccount.t('colour_theme'),
-              subtitle: "A little colour for your everyday care.",
+              subtitle: currentAccount.t('theme_subtitle'),
             ),
             const SizedBox(height: 12.0),
             Row(
@@ -273,7 +273,7 @@ class _SettingsPageState extends State<SettingsPage> {
             const SizedBox(height: 24.0),
           ],
         ),
-      ),
+      )),
       bottomNavigationBar: const NavigationFooter(currentPage: 'settings'),
     );
   }
