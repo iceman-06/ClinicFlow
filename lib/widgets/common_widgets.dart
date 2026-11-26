@@ -1,4 +1,5 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 import 'package:clinicflow/pages/client/calendar_page.dart' as client_calendar;
@@ -70,8 +71,10 @@ class ProfileIconButton extends StatelessWidget {
         actionsAlignment: MainAxisAlignment.spaceBetween,
         actions: [
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               Navigator.pop(ctx);
+              await FirebaseAuth.instance.signOut();
+              if (!context.mounted) return;
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const AuthPage()),

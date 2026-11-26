@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/pages/client/settings_page.dart' as client_settings;
 
@@ -16,6 +17,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       currentAccount.toggleRole();
     });
+    FirestoreService.saveAccount(currentAccount);
 
     Navigator.pushReplacement(
       context,
@@ -31,6 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       currentAccount.toggleLanguage();
     });
+    FirestoreService.saveAccount(currentAccount);
   }
 
   @override
@@ -93,6 +96,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   currentAccount.staffNotifications = !currentAccount.staffNotifications;
                 });
+                FirestoreService.saveAccount(currentAccount);
               },
             ),
             SettingsTile(
@@ -102,6 +106,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   currentAccount.automatedCheckInPrompts = !currentAccount.automatedCheckInPrompts;
                 });
+                FirestoreService.saveAccount(currentAccount);
               },
             ),
             const SizedBox(height: 16.0),
@@ -133,6 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Coastal";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
                 ThemeCard(
@@ -147,6 +153,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Dark";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
                 ThemeCard(
@@ -161,6 +168,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Clay";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
               ],

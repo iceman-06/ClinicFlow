@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 
 class FamilyMemberCard extends StatelessWidget {
   final UserProfile profile;
@@ -144,26 +145,24 @@ class ProfilesPage extends StatefulWidget {
 }
 
 class _ProfilesPageState extends State<ProfilesPage> {
-  void _addNewMember() {
-    setState(() {
-      final newId = 'CL-${1000 + currentAccount.profiles.length + 1}';
-      currentAccount.profiles.add(
-        UserProfile(
-          id: newId,
-          name: 'New Member',
-          clientId: newId,
-          dob: DateTime(2000, 1, 1),
-          phone: '613-555-0100',
-          primaryPhone: currentAccount.primaryPhone,
-          isAccountHolder: false,
-          upcomingBooking: currentAccount.t('no_upcoming_booking'),
-          bookingSubInfo: 'Newly added profile',
-        ),
-      );
-    });
+  Future<void> _addNewMember(List<UserProfile> currentProfiles) async {
+    final newId = 'CL-${DateTime.now().millisecondsSinceEpoch % 100000}';
+    final newProfile = UserProfile(
+      id: newId,
+      accountId: currentAccount.id,
+      name: 'New Member',
+      clientId: newId,
+      dob: DateTime(2000, 1, 1),
+      phone: '613-555-0100',
+      primaryPhone: currentAccount.primaryPhone,
+      isAccountHolder: false,
+      upcomingBooking: currentAccount.t('no_upcoming_booking'),
+      bookingSubInfo: 'Newly added profile',
+    );
+    await FirestoreService.saveProfile(currentAccount.id, newProfile);
   }
 
-  void _removeProfile(UserProfile profile) {
+  void _removeProfile(UserProfile profile, List<UserProfile> currentProfiles) {
     if (profile.isAccountHolder) return;
     showDialog(
       context: context,
@@ -177,14 +176,18 @@ class _ProfilesPageState extends State<ProfilesPage> {
             child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                currentAccount.profiles.removeWhere((p) => p.id == profile.id);
-                if (currentAccount.activeProfileId == profile.id) {
-                  currentAccount.activeProfileId = currentAccount.profiles.first.id;
-                }
-              });
+            onPressed: () async {
               Navigator.pop(ctx);
+              await FirestoreService.deleteProfile(currentAccount.id, profile.id);
+              if (currentAccount.activeProfileId == profile.id && currentProfiles.isNotEmpty) {
+                final fallback = currentProfiles.firstWhere(
+                  (p) => p.id != profile.id,
+                  orElse: () => currentProfiles.first,
+                );
+                currentAccount.activeProfileId = fallback.id;
+                await FirestoreService.saveAccount(currentAccount);
+              }
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(currentAccount.t('profile_removed'))),
               );
@@ -231,7 +234,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
             child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
           ),
           TextButton(
-            onPressed: () {
+            onPressed: () async {
               final nameParts = nameController.text.trim().split(RegExp(r'\s+'));
               if (nameParts.length < 2) {
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -258,12 +261,17 @@ class _ProfilesPageState extends State<ProfilesPage> {
                 return;
               }
 
-              setState(() {
-                profile.name = nameController.text.trim();
-                profile.phone = "${cleanPhone.substring(0,3)}-${cleanPhone.substring(3,6)}-${cleanPhone.substring(6)}";
-                profile.dob = parsedDate!;
-              });
+              profile.name = nameController.text.trim();
+              profile.phone = "${cleanPhone.substring(0,3)}-${cleanPhone.substring(3,6)}-${cleanPhone.substring(6)}";
+              profile.dob = parsedDate;
+
               Navigator.pop(ctx);
+              await FirestoreService.saveProfile(currentAccount.id, profile);
+              if (profile.isAccountHolder) {
+                currentAccount.name = profile.name;
+                await FirestoreService.saveAccount(currentAccount);
+              }
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(currentAccount.t('profile_updated'))),
               );
@@ -277,7 +285,6 @@ class _ProfilesPageState extends State<ProfilesPage> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {});
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -288,99 +295,108 @@ class _ProfilesPageState extends State<ProfilesPage> {
         title: BetterText(text: currentAccount.t('family_profiles'), size: 24.0, colour: currentAccount.palette.textPrimary),
         actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BetterText(
-              text: currentAccount.t('manage_family_desc'),
-              size: 14.0,
-              colour: currentAccount.palette.textSecondary,
-            ),
-            const SizedBox(height: 16.0),
-            Container(
+      body: StreamBuilder<List<UserProfile>>(
+        stream: FirestoreService.streamProfiles(currentAccount.id),
+        builder: (context, snapshot) {
+          final profiles = snapshot.data ?? currentAccount.profiles;
+
+          return GestureDetector(
+            onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
-                borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-                color: currentAccount.palette.secondary,
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   BetterText(
-                    text: "${currentAccount.profiles.length} ${currentAccount.t('family_members')}",
-                    weight: 600,
-                    size: 16.0,
-                    colour: currentAccount.palette.textPrimary,
-                  ),
-                  const SizedBox(height: 4.0),
-                  BetterText(
-                    text: currentAccount.t('add_new_family_member_below'),
-                    size: 12.0,
+                    text: currentAccount.t('manage_family_desc'),
+                    size: 14.0,
                     colour: currentAccount.palette.textSecondary,
                   ),
+                  const SizedBox(height: 16.0),
+                  Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
+                      borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                      color: currentAccount.palette.secondary,
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        BetterText(
+                          text: "${profiles.length} ${currentAccount.t('family_members')}",
+                          weight: 600,
+                          size: 16.0,
+                          colour: currentAccount.palette.textPrimary,
+                        ),
+                        const SizedBox(height: 4.0),
+                        BetterText(
+                          text: currentAccount.t('add_new_family_member_below'),
+                          size: 12.0,
+                          colour: currentAccount.palette.textSecondary,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      BetterText(
+                        text: currentAccount.t('registered_family_members'),
+                        size: 18.0,
+                        weight: 600,
+                        colour: currentAccount.palette.textPrimary,
+                      ),
+                      BetterText(
+                        text: "${profiles.length} members",
+                        size: 12.0,
+                        colour: currentAccount.palette.textSecondary,
+                      ),
+                    ],
+                  ),
+                  Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
+                  for (var profile in profiles)
+                    FamilyMemberCard(
+                      profile: profile,
+                      isActive: profile.id == currentAccount.activeProfileId,
+                      onSelectProfile: () async {
+                        setState(() {
+                          currentAccount.activeProfileId = profile.id;
+                        });
+                        await FirestoreService.saveAccount(currentAccount);
+                      },
+                      onManage: () => _manageProfile(profile),
+                      onDelete: profile.isAccountHolder ? null : () => _removeProfile(profile, profiles),
+                    ),
+                  const SizedBox(height: 12.0),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: () => _addNewMember(profiles),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: currentAccount.palette.primary,
+                        padding: const EdgeInsets.symmetric(vertical: 16.0),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.0),
+                        ),
+                      ),
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      label: BetterText(
+                        text: currentAccount.t('add_new_member'),
+                        colour: Colors.white,
+                        weight: 600,
+                        size: 16.0,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
                 ],
               ),
             ),
-            const SizedBox(height: 24.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                BetterText(
-                  text: currentAccount.t('registered_family_members'),
-                  size: 18.0,
-                  weight: 600,
-                  colour: currentAccount.palette.textPrimary,
-                ),
-                BetterText(
-                  text: "${currentAccount.profiles.length} members",
-                  size: 12.0,
-                  colour: currentAccount.palette.textSecondary,
-                ),
-              ],
-            ),
-            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
-            for (var profile in currentAccount.profiles)
-              FamilyMemberCard(
-                profile: profile,
-                isActive: profile.id == currentAccount.activeProfileId,
-                onSelectProfile: () {
-                  setState(() {
-                    currentAccount.activeProfileId = profile.id;
-                  });
-                },
-                onManage: () => _manageProfile(profile),
-                onDelete: profile.isAccountHolder ? null : () => _removeProfile(profile),
-              ),
-            const SizedBox(height: 12.0),
-            SizedBox(
-              width: double.infinity,
-              child: FilledButton.icon(
-                onPressed: _addNewMember,
-                style: FilledButton.styleFrom(
-                  backgroundColor: currentAccount.palette.primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16.0),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-                  ),
-                ),
-                icon: const Icon(Icons.add, color: Colors.white),
-                label: BetterText(
-                  text: currentAccount.t('add_new_member'),
-                  colour: Colors.white,
-                  weight: 600,
-                  size: 16.0,
-                ),
-              ),
-            ),
-            const SizedBox(height: 24.0),
-          ],
-        ),
-      )),
+          );
+        },
+      ),
       bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
     );
   }

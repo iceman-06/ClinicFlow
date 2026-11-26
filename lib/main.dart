@@ -1,9 +1,19 @@
 import 'package:material_ui/material_ui.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:clinicflow/firebase_options.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/translation.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/pages/client/home_page.dart' as client_home;
+import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+  loadDefaultAccount();
   runApp(const ClinicFlowApp());
 }
 
@@ -12,10 +22,10 @@ class ClinicFlowApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
+    return const MaterialApp(
       title: 'ClinicFlow',
       debugShowCheckedModeBanner: false,
-      home: const AuthPage(),
+      home: AuthPage(),
     );
   }
 }
@@ -28,7 +38,11 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
+  static const String _defaultDemoEmail = 'jamie.chen@clinicflow.app';
+  static const String _defaultDemoPassword = 'ClinicFlowDemo2026!';
+
   bool _isLogin = true;
+  bool _isLoading = false;
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _nameController = TextEditingController();
@@ -39,11 +53,40 @@ class _AuthPageState extends State<AuthPage> {
     loadDefaultAccount();
   }
 
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
+
   bool _isValidEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
   }
 
-  void _submit() {
+  String _mapAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+      case 'wrong-password':
+      case 'invalid-credential':
+        return currentAccount.t('error_invalid_credentials');
+      case 'email-already-in-use':
+        return currentAccount.t('error_email_in_use');
+      case 'weak-password':
+        return currentAccount.t('error_password_length');
+      case 'invalid-email':
+        return currentAccount.t('error_valid_email');
+      case 'too-many-requests':
+        return currentAccount.t('error_too_many_requests');
+      default:
+        return 'Auth error (${e.code}): ${e.message ?? currentAccount.t('error_auth_generic')}';
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_isLoading) return;
+
     final email = _emailController.text.trim();
     final password = _passwordController.text;
     final name = _nameController.text.trim();
@@ -62,7 +105,7 @@ class _AuthPageState extends State<AuthPage> {
         );
         return;
       }
-      if (password.length < 5) {
+      if (password.length < 6) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(currentAccount.t('error_password_length'))),
         );
@@ -77,40 +120,134 @@ class _AuthPageState extends State<AuthPage> {
       }
     }
 
-    final selectedLanguage = currentAccount.language;
-    loadDefaultAccount();
-    currentAccount.language = selectedLanguage;
-    currentAccount.primaryEmail = email;
-    if (!_isLogin && name.isNotEmpty) {
-      currentAccount.name = name;
-      currentAccount.profiles.first.name = name;
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential credential;
+      if (_isLogin) {
+        credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+      } else {
+        credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        if (name.isNotEmpty) {
+          await credential.user?.updateDisplayName(name);
+          await credential.user?.reload();
+        }
+      }
+
+      final user = FirebaseAuth.instance.currentUser ?? credential.user;
+      if (user != null) {
+        await FirestoreService.loadOrCreateAccount(
+          user,
+          fallbackName: !_isLogin ? name : null,
+          fallbackEmail: email,
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => currentAccount.isStaff ? const staff_home.HomePage() : const client_home.HomePage(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mapAuthError(e))),
+      );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Firestore error (${e.code}): ${e.message ?? ''}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const client_home.HomePage()),
-    );
   }
 
-  void _loginAsDefault() {
-    final selectedLanguage = currentAccount.language;
-    loadDefaultAccount();
-    currentAccount.language = selectedLanguage;
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const client_home.HomePage()),
-    );
-  }
+  Future<void> _loginAsDefault() async {
+    if (_isLoading) return;
 
-  void _loginWithGoogle() {
-    final selectedLanguage = currentAccount.language;
-    loadDefaultAccount();
-    currentAccount.language = selectedLanguage;
-    currentAccount.primaryEmail = "jamie.chen@gmail.com";
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(builder: (_) => const client_home.HomePage()),
-    );
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      UserCredential credential;
+      try {
+        credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+          email: _defaultDemoEmail,
+          password: _defaultDemoPassword,
+        );
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+          credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+            email: _defaultDemoEmail,
+            password: _defaultDemoPassword,
+          );
+          await credential.user?.updateDisplayName('Jamie Chen');
+          await credential.user?.reload();
+        } else {
+          rethrow;
+        }
+      }
+
+      final user = FirebaseAuth.instance.currentUser ?? credential.user;
+      if (user != null) {
+        await FirestoreService.loadOrCreateAccount(
+          user,
+          fallbackName: 'Jamie Chen',
+          fallbackEmail: _defaultDemoEmail,
+          isDefaultDemo: true,
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => currentAccount.isStaff ? const staff_home.HomePage() : const client_home.HomePage(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mapAuthError(e))),
+      );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Firestore error (${e.code}): ${e.message ?? ''}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
   @override
@@ -155,6 +292,8 @@ class _AuthPageState extends State<AuthPage> {
               ],
               TextField(
                 controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
                 decoration: InputDecoration(
                   labelText: currentAccount.t('email'),
                   border: const OutlineInputBorder(),
@@ -173,31 +312,22 @@ class _AuthPageState extends State<AuthPage> {
               SizedBox(
                 width: double.infinity,
                 child: FilledButton(
-                  onPressed: _submit,
+                  onPressed: _isLoading ? null : _submit,
                   style: FilledButton.styleFrom(backgroundColor: palette.primary),
-                  child: Text(_isLogin ? currentAccount.t('login') : currentAccount.t('signup')),
-                ),
-              ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton.icon(
-                  onPressed: _loginWithGoogle,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: palette.primary),
-                  ),
-                  icon: Icon(Icons.g_mobiledata, size: 28, color: palette.primary),
-                  label: Text(
-                    currentAccount.t('login_with_google'),
-                    style: TextStyle(color: palette.primary, fontWeight: FontWeight.bold),
-                  ),
+                  child: _isLoading
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        )
+                      : Text(_isLogin ? currentAccount.t('login') : currentAccount.t('signup')),
                 ),
               ),
               const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: _loginAsDefault,
+                  onPressed: _isLoading ? null : _loginAsDefault,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: palette.textSecondary),
                   ),
@@ -209,11 +339,13 @@ class _AuthPageState extends State<AuthPage> {
               ),
               const SizedBox(height: 16),
               OutlinedButton(
-                onPressed: () {
-                  setState(() {
-                    _isLogin = !_isLogin;
-                  });
-                },
+                onPressed: _isLoading
+                    ? null
+                    : () {
+                        setState(() {
+                          _isLogin = !_isLogin;
+                        });
+                      },
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: palette.primary, width: 1.5),
                   backgroundColor: palette.secondary.withAlpha(50),

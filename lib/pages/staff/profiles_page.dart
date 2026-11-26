@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
 
 class StaffProfileCard extends StatelessWidget {
@@ -126,8 +127,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
             children: [
               BetterText(text: currentAccount.t('primary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
               const SizedBox(height: 4.0),
-              BetterText(text: currentAccount.t('email_label', replacements: [currentAccount.primaryEmail]), size: 13.0, colour: currentAccount.palette.textPrimary),
-              BetterText(text: currentAccount.t('phone_label', replacements: [currentAccount.primaryPhone]), size: 13.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('phone_label', replacements: [profile.primaryPhone]), size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 12.0),
               BetterText(text: currentAccount.t('secondary_contact'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
               const SizedBox(height: 4.0),
@@ -155,11 +155,12 @@ class _ProfilesPageState extends State<ProfilesPage> {
             child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
           ),
           TextButton(
-            onPressed: () {
-              setState(() {
-                profile.notes = notesController.text.trim();
-              });
+            onPressed: () async {
+              profile.notes = notesController.text.trim();
+              final ownerAccountId = profile.accountId.isNotEmpty ? profile.accountId : currentAccount.id;
               Navigator.pop(ctx);
+              await FirestoreService.saveProfile(ownerAccountId, profile);
+              if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(currentAccount.t('client_notes_updated'))),
               );
@@ -173,7 +174,6 @@ class _ProfilesPageState extends State<ProfilesPage> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {});
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -184,46 +184,54 @@ class _ProfilesPageState extends State<ProfilesPage> {
         title: BetterText(text: currentAccount.t('profiles'), size: 24.0, colour: currentAccount.palette.textPrimary),
         actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            BetterText(
-              text: currentAccount.t('search_clients_desc'),
-              size: 14.0,
-              colour: currentAccount.palette.textSecondary,
-            ),
-            const SizedBox(height: 20.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                BetterText(
-                  text: "${currentAccount.profiles.length} ${currentAccount.t('clients')}",
-                  size: 12.0,
-                  colour: currentAccount.palette.textSecondary,
-                ),
-              ],
-            ),
-            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
-            for (var profile in currentAccount.profiles)
-              StaffProfileCard(
-                profile: profile,
-                onViewProfile: () {},
-                onBookForClient: () {
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(builder: (_) => const staff_calendar.CalendarPage()),
-                  );
-                },
-                onManage: () => _manageClient(profile),
+      body: StreamBuilder<List<UserProfile>>(
+        stream: FirestoreService.streamAllProfilesForStaff(),
+        builder: (context, snapshot) {
+          final profiles = snapshot.data ?? currentAccount.profiles;
+
+          return GestureDetector(
+            onHorizontalDragEnd: (details) => navigateBySwipe(context, 'profiles', details),
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BetterText(
+                    text: currentAccount.t('search_clients_desc'),
+                    size: 14.0,
+                    colour: currentAccount.palette.textSecondary,
+                  ),
+                  const SizedBox(height: 20.0),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      BetterText(
+                        text: "${profiles.length} ${currentAccount.t('clients')}",
+                        size: 12.0,
+                        colour: currentAccount.palette.textSecondary,
+                      ),
+                    ],
+                  ),
+                  Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
+                  for (var profile in profiles)
+                    StaffProfileCard(
+                      profile: profile,
+                      onViewProfile: () => _manageClient(profile),
+                      onBookForClient: () {
+                        Navigator.pushReplacement(
+                          context,
+                          MaterialPageRoute(builder: (_) => const staff_calendar.CalendarPage()),
+                        );
+                      },
+                      onManage: () => _manageClient(profile),
+                    ),
+                  const SizedBox(height: 24.0),
+                ],
               ),
-            const SizedBox(height: 24.0),
-          ],
-        ),
-      )),
+            ),
+          );
+        },
+      ),
       bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
     );
   }

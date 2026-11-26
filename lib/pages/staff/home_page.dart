@@ -1,22 +1,15 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 
 class StaffBookingCard extends StatefulWidget {
-  final String startTime;
-  final String endTime;
-  final String name;
-  final String description;
-  final String status;
+  final Appointment appointment;
   final Color? statusColor;
 
   const StaffBookingCard({
     super.key,
-    required this.startTime,
-    required this.endTime,
-    required this.name,
-    required this.description,
-    required this.status,
+    required this.appointment,
     this.statusColor,
   });
 
@@ -25,15 +18,25 @@ class StaffBookingCard extends StatefulWidget {
 }
 
 class _StaffBookingCardState extends State<StaffBookingCard> {
-  late String currentStatus;
-
-  @override
-  void initState() {
-    super.initState();
-    currentStatus = widget.status;
-  }
+  static const List<String> _validStatuses = [
+    "Upcoming",
+    "Confirmed",
+    "Checked in",
+    "Expected",
+    "In progress",
+    "No-show",
+    "Done",
+  ];
 
   void _showStaffAppointmentPopup(BuildContext context) {
+    final dt = widget.appointment.dateTime;
+    final endDt = dt.add(widget.appointment.duration);
+    final startTime = getTime(timeOfDay: TimeOfDay(hour: dt.hour, minute: dt.minute));
+    final endTime = getTime(timeOfDay: TimeOfDay(hour: endDt.hour, minute: endDt.minute));
+    String selectedStatus = _validStatuses.contains(widget.appointment.status)
+        ? widget.appointment.status
+        : "Upcoming";
+
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
@@ -44,29 +47,29 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              BetterText(text: currentAccount.t('client_label', replacements: [widget.name]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('client_label', replacements: [widget.appointment.clientName]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 8.0),
-              BetterText(text: currentAccount.t('time_label', replacements: ["${widget.startTime} – ${widget.endTime.isEmpty ? currentAccount.t('ongoing') : widget.endTime}"]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('time_label', replacements: ["$startTime – $endTime"]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
-              BetterText(text: currentAccount.t('description_label', replacements: [widget.description]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('description_label', replacements: [widget.appointment.description]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 12.0),
               BetterText(text: currentAccount.t('change_status'), weight: 600, size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
               DropdownButton<String>(
-                value: currentStatus,
+                value: selectedStatus,
                 dropdownColor: currentAccount.palette.background,
-                items: ["Checked in", "Expected", "In progress", "No-show", "Done"]
+                items: _validStatuses
                     .map((status) => DropdownMenuItem(
                           value: status,
                           child: BetterText(text: status, colour: currentAccount.palette.textPrimary),
                         ))
                     .toList(),
-                onChanged: (newVal) {
+                onChanged: (newVal) async {
                   if (newVal != null) {
                     setDialogState(() {
-                      currentStatus = newVal;
+                      selectedStatus = newVal;
                     });
-                    setState(() {});
+                    await FirestoreService.updateAppointmentStatus(widget.appointment.id, newVal);
                   }
                 },
               ),
@@ -75,8 +78,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
           actionsAlignment: MainAxisAlignment.spaceBetween,
           actions: [
             TextButton(
-              onPressed: () {
+              onPressed: () async {
                 Navigator.pop(ctx);
+                await FirestoreService.cancelAppointment(widget.appointment.id);
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(content: Text(currentAccount.t('appointment_cancelled'))),
                 );
@@ -95,6 +100,11 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
 
   @override
   Widget build(BuildContext context) {
+    final dt = widget.appointment.dateTime;
+    final endDt = dt.add(widget.appointment.duration);
+    final startTime = getTime(timeOfDay: TimeOfDay(hour: dt.hour, minute: dt.minute));
+    final endTime = getTime(timeOfDay: TimeOfDay(hour: endDt.hour, minute: endDt.minute));
+
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
       child: IntrinsicHeight(
@@ -104,9 +114,9 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                BetterText(text: widget.startTime, weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
+                BetterText(text: startTime, weight: 600, size: 14.0, colour: currentAccount.palette.textPrimary),
                 BetterText(
-                  text: widget.endTime,
+                  text: endTime,
                   size: 14.0,
                   colour: currentAccount.palette.textSecondary,
                 ),
@@ -122,10 +132,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  BetterText(text: widget.name, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
+                  BetterText(text: widget.appointment.clientName, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
                   const SizedBox(height: 2.0),
                   BetterText(
-                    text: widget.description,
+                    text: "${getWeekDay(truncate: true, dateTime: dt)}, ${dt.day} ${getMonth(truncate: true, dateTime: dt)} · ${widget.appointment.description} · ${widget.appointment.duration.inMinutes} min",
                     size: 12.0,
                     colour: currentAccount.palette.textSecondary,
                   ),
@@ -138,7 +148,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   BetterText(
-                    text: currentStatus,
+                    text: widget.appointment.status,
                     size: 13.0,
                     weight: 600,
                     colour: widget.statusColor ?? currentAccount.palette.textPrimary,
@@ -160,6 +170,8 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final now = DateTime.now();
+
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -170,206 +182,217 @@ class HomePage extends StatelessWidget {
         title: BetterText(text: currentAccount.t('home'), size: 24.0, colour: currentAccount.palette.textPrimary),
         actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
       ),
-      body: GestureDetector(
-        onHorizontalDragEnd: (details) => navigateBySwipe(context, 'home', details),
-        child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BetterText(
-                  text: "${getWeekDay(dateTime: DateTime(2026, 11, 9))}, ${getMonth(dateTime: DateTime(2026, 11, 9))} ${getDay(dateTime: DateTime(2026, 11, 9))}",
-                  size: 22.0,
-                  weight: 700,
-                  colour: currentAccount.palette.textPrimary,
-                ),
-                const SizedBox(height: 2.0),
-                BetterText(
-                  text: "8 bookings today · Updated 14:10",
-                  size: 12.0,
-                  colour: currentAccount.palette.textSecondary,
-                ),
-              ],
-            ),
-            const SizedBox(height: 16.0),
-            Container(
+      body: StreamBuilder<List<Appointment>>(
+        stream: FirestoreService.streamAllAppointments(),
+        builder: (context, snapshot) {
+          final allAppointments = snapshot.data ?? [];
+          final doneCount = allAppointments.where((a) => a.status == 'Done').length;
+          final inProgressCount = allAppointments.where((a) => a.status == 'In progress').length;
+          final checkedInCount = allAppointments.where((a) => a.status == 'Checked in').length;
+          final noShowCount = allAppointments.where((a) => a.status == 'No-show').length;
+          final yetToArriveCount = allAppointments
+              .where((a) => a.status == 'Upcoming' || a.status == 'Confirmed' || a.status == 'Expected')
+              .length;
+
+          final upNext = allAppointments
+              .where((a) => a.status == 'Upcoming' || a.status == 'Confirmed' || a.status == 'Expected' || a.status == 'Checked in')
+              .toList();
+          final onSchedule = allAppointments
+              .where((a) => a.status == 'In progress' || a.status == 'No-show' || a.status == 'Done')
+              .toList();
+
+          return GestureDetector(
+            onHorizontalDragEnd: (details) => navigateBySwipe(context, 'home', details),
+            child: SingleChildScrollView(
               padding: const EdgeInsets.all(16.0),
-              decoration: BoxDecoration(
-                border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
-                borderRadius: BorderRadius.circular(10.0),
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       BetterText(
-                        text: currentAccount.t('schedule_status'),
-                        weight: 600,
-                        size: 16.0,
+                        text: "${getWeekDay(dateTime: now)}, ${getMonth(dateTime: now)} ${getDay(dateTime: now)}",
+                        size: 22.0,
+                        weight: 700,
                         colour: currentAccount.palette.textPrimary,
                       ),
+                      const SizedBox(height: 2.0),
                       BetterText(
-                        text: "2 ${currentAccount.t('yet_to_arrive')}",
+                        text: "${allAppointments.length} bookings · Updated ${getTime()}",
                         size: 12.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12.0),
+                  const SizedBox(height: 16.0),
+                  Container(
+                    padding: const EdgeInsets.all(16.0),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            BetterText(
+                              text: currentAccount.t('schedule_status'),
+                              weight: 600,
+                              size: 16.0,
+                              colour: currentAccount.palette.textPrimary,
+                            ),
+                            BetterText(
+                              text: "$yetToArriveCount ${currentAccount.t('yet_to_arrive')}",
+                              size: 12.0,
+                              colour: currentAccount.palette.textSecondary,
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12.0),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BetterText(
+                                  text: "$doneCount",
+                                  size: 22.0,
+                                  weight: 700,
+                                  colour: currentAccount.palette.primary,
+                                ),
+                                const SizedBox(height: 2.0),
+                                Row(
+                                  children: [
+                                    BetterText(text: "● ", colour: currentAccount.palette.primary, size: 10.0),
+                                    BetterText(text: currentAccount.t('done'), size: 12.0, colour: currentAccount.palette.textSecondary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BetterText(
+                                  text: "$inProgressCount",
+                                  size: 22.0,
+                                  weight: 700,
+                                  colour: const Color.fromARGB(255, 41, 128, 185),
+                                ),
+                                const SizedBox(height: 2.0),
+                                Row(
+                                  children: [
+                                    const BetterText(text: "● ", colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
+                                    BetterText(text: currentAccount.t('in_progress'), size: 12.0, colour: currentAccount.palette.textSecondary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BetterText(
+                                  text: "$checkedInCount",
+                                  size: 22.0,
+                                  weight: 700,
+                                  colour: currentAccount.palette.textPrimary,
+                                ),
+                                const SizedBox(height: 2.0),
+                                Row(
+                                  children: [
+                                    BetterText(text: "● ", colour: currentAccount.palette.textPrimary, size: 10.0),
+                                    BetterText(text: currentAccount.t('checked_in'), size: 12.0, colour: currentAccount.palette.textSecondary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                BetterText(
+                                  text: "$noShowCount",
+                                  size: 22.0,
+                                  weight: 700,
+                                  colour: const Color.fromARGB(255, 192, 57, 43),
+                                ),
+                                const SizedBox(height: 2.0),
+                                Row(
+                                  children: [
+                                    const BetterText(text: "● ", colour: Color.fromARGB(255, 192, 57, 43), size: 10.0),
+                                    BetterText(text: currentAccount.t('no_show'), size: 12.0, colour: currentAccount.palette.textSecondary),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          BetterText(
-                            text: "3",
-                            size: 22.0,
-                            weight: 700,
-                            colour: currentAccount.palette.primary,
-                          ),
-                          const SizedBox(height: 2.0),
-                          Row(
-                            children: [
-                              BetterText(text: "● ", colour: currentAccount.palette.primary, size: 10.0),
-                              BetterText(text: currentAccount.t('done'), size: 12.0, colour: currentAccount.palette.textSecondary),
-                            ],
-                          ),
-                        ],
+                      BetterText(
+                        text: currentAccount.t('up_next'),
+                        size: 18.0,
+                        weight: 600,
+                        colour: currentAccount.palette.textPrimary,
                       ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const BetterText(
-                            text: "1",
-                            size: 22.0,
-                            weight: 700,
-                            colour: Color.fromARGB(255, 41, 128, 185),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Row(
-                            children: [
-                              const BetterText(text: "● ", colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
-                              BetterText(text: currentAccount.t('in_progress'), size: 12.0, colour: currentAccount.palette.textSecondary),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          BetterText(
-                            text: "1",
-                            size: 22.0,
-                            weight: 700,
-                            colour: currentAccount.palette.textPrimary,
-                          ),
-                          const SizedBox(height: 2.0),
-                          Row(
-                            children: [
-                              BetterText(text: "● ", colour: currentAccount.palette.textPrimary, size: 10.0),
-                              BetterText(text: currentAccount.t('checked_in'), size: 12.0, colour: currentAccount.palette.textSecondary),
-                            ],
-                          ),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const BetterText(
-                            text: "1",
-                            size: 22.0,
-                            weight: 700,
-                            colour: Color.fromARGB(255, 192, 57, 43),
-                          ),
-                          const SizedBox(height: 2.0),
-                          Row(
-                            children: [
-                              BetterText(text: "● ", colour: Color.fromARGB(255, 192, 57, 43), size: 10.0),
-                              BetterText(text: currentAccount.t('no_show'), size: 12.0, colour: currentAccount.palette.textSecondary),
-                            ],
-                          ),
-                        ],
+                      BetterText(
+                        text: "${upNext.length} bookings",
+                        size: 12.0,
+                        colour: currentAccount.palette.textSecondary,
                       ),
                     ],
                   ),
+                  Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
+                  if (snapshot.connectionState == ConnectionState.waiting && allAppointments.isEmpty)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16.0),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (upNext.isEmpty)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 12.0),
+                      child: BetterText(
+                        text: currentAccount.t('no_upcoming_booking'),
+                        colour: currentAccount.palette.textSecondary,
+                      ),
+                    )
+                  else
+                    for (final appt in upNext)
+                      StaffBookingCard(
+                        appointment: appt,
+                        statusColor: appt.status == 'Checked in'
+                            ? currentAccount.palette.primary
+                            : const Color.fromARGB(255, 120, 120, 120),
+                      ),
+                  const SizedBox(height: 24.0),
+                  BetterText(
+                    text: currentAccount.t('on_the_schedule'),
+                    size: 18.0,
+                    weight: 600,
+                    colour: currentAccount.palette.textPrimary,
+                  ),
+                  Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
+                  for (final appt in onSchedule)
+                    StaffBookingCard(
+                      appointment: appt,
+                      statusColor: appt.status == 'No-show'
+                          ? const Color.fromARGB(255, 192, 57, 43)
+                          : currentAccount.palette.primary,
+                    ),
+                  const SizedBox(height: 24.0),
                 ],
               ),
             ),
-            const SizedBox(height: 24.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                BetterText(
-                  text: currentAccount.t('up_next'),
-                  size: 18.0,
-                  weight: 600,
-                  colour: currentAccount.palette.textPrimary,
-                ),
-                BetterText(
-                  text: "3 bookings",
-                  size: 12.0,
-                  colour: currentAccount.palette.textSecondary,
-                ),
-              ],
-            ),
-            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
-            const StaffBookingCard(
-              startTime: "14:30",
-              endTime: "15:00",
-              name: "Jamie Chen",
-              description: "Follow-up appointment · 30 min",
-              status: "Checked in",
-            ),
-            const StaffBookingCard(
-              startTime: "15:15",
-              endTime: "16:00",
-              name: "Alex Morgan",
-              description: "Initial consultation · 45 min",
-              status: "Expected",
-              statusColor: Color.fromARGB(255, 120, 120, 120),
-            ),
-            const StaffBookingCard(
-              startTime: "16:00",
-              endTime: "16:30",
-              name: "Priya Shah",
-              description: "Follow-up appointment · 30 min",
-              status: "Expected",
-              statusColor: Color.fromARGB(255, 120, 120, 120),
-            ),
-            const SizedBox(height: 24.0),
-            BetterText(
-              text: currentAccount.t('on_the_schedule'),
-              size: 18.0,
-              weight: 600,
-              colour: currentAccount.palette.textPrimary,
-            ),
-            Divider(thickness: 1.0, color: currentAccount.palette.smoke, height: 16.0),
-            StaffBookingCard(
-              startTime: "14:00",
-              endTime: "",
-              name: "Mia Patel",
-              description: "Follow-up · Room 2",
-              status: "In progress",
-              statusColor: currentAccount.palette.primary,
-            ),
-            const StaffBookingCard(
-              startTime: "13:00",
-              endTime: "",
-              name: "Noah Williams",
-              description: "Initial consultation",
-              status: "No-show",
-              statusColor: Color.fromARGB(255, 192, 57, 43),
-            ),
-            const SizedBox(height: 24.0),
-          ],
-        ),
-      )),
+          );
+        },
+      ),
       bottomNavigationBar: const NavigationFooter(currentPage: 'home'),
     );
   }

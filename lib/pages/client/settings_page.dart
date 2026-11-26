@@ -1,6 +1,7 @@
 import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
 
@@ -16,6 +17,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       currentAccount.toggleRole();
     });
+    FirestoreService.saveAccount(currentAccount);
 
     Navigator.pushReplacement(
       context,
@@ -31,6 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
     setState(() {
       currentAccount.toggleLanguage();
     });
+    FirestoreService.saveAccount(currentAccount);
   }
 
   void _manageContactDetails() {
@@ -75,6 +78,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 currentAccount.primaryEmail = emailController.text.trim();
                 currentAccount.primaryPhone = "${cleanPhone.substring(0,3)}-${cleanPhone.substring(3,6)}-${cleanPhone.substring(6)}";
               });
+              FirestoreService.saveAccount(currentAccount);
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(currentAccount.t('primary_contact_updated'))),
@@ -168,6 +172,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   currentAccount.emailReminders =
                       !currentAccount.emailReminders;
                 });
+                FirestoreService.saveAccount(currentAccount);
               },
             ),
             SettingsTile(
@@ -177,6 +182,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 setState(() {
                   currentAccount.smsReminders = !currentAccount.smsReminders;
                 });
+                FirestoreService.saveAccount(currentAccount);
               },
             ),
             SettingsTile(
@@ -189,6 +195,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   currentAccount.virtualCheckInEnabled =
                       !currentAccount.virtualCheckInEnabled;
                 });
+                FirestoreService.saveAccount(currentAccount);
               },
             ),
             const SizedBox(height: 16.0),
@@ -238,6 +245,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Coastal";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
                 ThemeCard(
@@ -252,6 +260,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Dark";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
                 ThemeCard(
@@ -266,6 +275,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     setState(() {
                       currentAccount.theme = "Clay";
                     });
+                    FirestoreService.saveAccount(currentAccount);
                   },
                 ),
               ],

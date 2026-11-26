@@ -3,8 +3,48 @@ import 'package:clinicflow/models/translation.dart';
 
 enum UserRole { patient, staff }
 
+DateTime _parseDateTime(dynamic value, {DateTime? fallback}) {
+  if (value == null) return fallback ?? DateTime.now();
+  if (value is DateTime) return value;
+  if (value is String) return DateTime.tryParse(value) ?? (fallback ?? DateTime.now());
+  try {
+    // Handles Firestore Timestamp without importing cloud_firestore in models
+    return (value as dynamic).toDate() as DateTime;
+  } catch (_) {
+    return fallback ?? DateTime.now();
+  }
+}
+
+class BookedSlot {
+  final String id;
+  final DateTime dateTime;
+  final Duration duration;
+
+  BookedSlot({
+    required this.id,
+    required this.dateTime,
+    required this.duration,
+  });
+
+  DateTime get endTime => dateTime.add(duration);
+
+  bool overlaps(DateTime slotStart, Duration slotDuration) {
+    final slotEnd = slotStart.add(slotDuration);
+    return dateTime.isBefore(slotEnd) && endTime.isAfter(slotStart);
+  }
+
+  factory BookedSlot.fromMap(Map<String, dynamic> map, {String? docId}) {
+    return BookedSlot(
+      id: docId ?? map['appointmentId'] ?? '',
+      dateTime: _parseDateTime(map['dateTime']),
+      duration: Duration(minutes: (map['duration'] as num?)?.toInt() ?? 30),
+    );
+  }
+}
+
 class UserProfile {
   String id;
+  String accountId;
   String name;
   String clientId;
   DateTime dob;
@@ -18,6 +58,7 @@ class UserProfile {
 
   UserProfile({
     required this.id,
+    this.accountId = '',
     required this.name,
     required this.clientId,
     required this.dob,
@@ -37,6 +78,7 @@ class UserProfile {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'accountId': accountId,
       'name': name,
       'clientId': clientId,
       'dob': dob.toIso8601String(),
@@ -50,17 +92,18 @@ class UserProfile {
     };
   }
 
-  factory UserProfile.fromMap(Map<String, dynamic> map) {
+  factory UserProfile.fromMap(Map<String, dynamic> map, {String? docId, String? parentAccountId}) {
     return UserProfile(
-      id: map['id'] ?? '',
+      id: docId ?? map['id'] ?? '',
+      accountId: parentAccountId ?? map['accountId'] ?? '',
       name: map['name'] ?? '',
-      clientId: map['clientId'] ?? '',
-      dob: DateTime.parse(map['dob'] ?? DateTime.now().toIso8601String()),
+      clientId: map['clientId'] ?? docId ?? '',
+      dob: _parseDateTime(map['dob'], fallback: DateTime(1990, 1, 1)),
       phone: map['phone'] ?? '',
       primaryPhone: map['primaryPhone'] ?? '',
       notes: map['notes'] ?? '',
       isAccountHolder: map['isAccountHolder'] ?? false,
-      upcomingBooking: map['upcomingBooking'] ?? '',
+      upcomingBooking: map['upcomingBooking'] ?? 'No upcoming booking',
       bookingSubInfo: map['bookingSubInfo'] ?? '',
       lastVisit: map['lastVisit'] ?? '',
     );
@@ -96,19 +139,25 @@ class UserProfile {
 
 class Appointment {
   String id;
+  String accountId;
+  String profileId;
   String clientName;
   DateTime dateTime;
   Duration duration;
   String description;
   String status;
+  String notes;
 
   Appointment({
     required this.id,
+    this.accountId = '',
+    this.profileId = '',
     required this.clientName,
     required this.dateTime,
     required this.duration,
     required this.description,
     required this.status,
+    this.notes = '',
   }) {
     Appointment.onCreated?.call(this);
   }
@@ -118,22 +167,28 @@ class Appointment {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
+      'accountId': accountId,
+      'profileId': profileId,
       'clientName': clientName,
       'dateTime': dateTime.toIso8601String(),
       'duration': duration.inMinutes,
       'description': description,
       'status': status,
+      'notes': notes,
     };
   }
 
-  factory Appointment.fromMap(Map<String, dynamic> map) {
+  factory Appointment.fromMap(Map<String, dynamic> map, {String? docId}) {
     return Appointment(
-      id: map['id'] ?? '',
+      id: docId ?? map['id'] ?? '',
+      accountId: map['accountId'] ?? '',
+      profileId: map['profileId'] ?? '',
       clientName: map['clientName'] ?? '',
-      dateTime: DateTime.parse(map['dateTime'] ?? DateTime.now().toIso8601String()),
-      duration: Duration(minutes: map['duration'] ?? 30),
+      dateTime: _parseDateTime(map['dateTime']),
+      duration: Duration(minutes: (map['duration'] as num?)?.toInt() ?? 30),
       description: map['description'] ?? '',
-      status: map['status'] ?? '',
+      status: map['status'] ?? 'Upcoming',
+      notes: map['notes'] ?? '',
     );
   }
 
@@ -190,7 +245,7 @@ class Announcement {
       Announcement(
         id: 'ann-1',
         title: currentAccount.t("appointment_in_minutes", replacements: ["20"]),
-        description: "Jamie Chen • ${currentAccount.t("today")}, 14:30-15:00",
+        description: "${currentAccount.activeProfile.name} • ${currentAccount.t("today")}, 14:30-15:00",
       ),
       Announcement(
         id: 'ann-2',
@@ -252,7 +307,6 @@ class Account {
       'primaryPhone': primaryPhone,
       'dateOfBirth': dateOfBirth.toIso8601String(),
       'role': role.name,
-      'profiles': profiles.map((p) => p.toMap()).toList(),
       'activeProfileId': activeProfileId,
       'theme': theme,
       'emailReminders': emailReminders,
@@ -265,16 +319,17 @@ class Account {
     };
   }
 
-  factory Account.fromMap(Map<String, dynamic> map) {
+  factory Account.fromMap(Map<String, dynamic> map, {List<UserProfile>? profiles}) {
+    final loadedProfiles = profiles ?? <UserProfile>[];
     return Account(
       id: map['id'] ?? '',
       name: map['name'] ?? '',
       primaryEmail: map['primaryEmail'] ?? '',
       primaryPhone: map['primaryPhone'] ?? '',
-      dateOfBirth: DateTime.parse(map['dateOfBirth'] ?? DateTime.now().toIso8601String()),
+      dateOfBirth: _parseDateTime(map['dateOfBirth'], fallback: DateTime(1990, 1, 1)),
       role: map['role'] == 'staff' ? UserRole.staff : UserRole.patient,
-      profiles: (map['profiles'] as List? ?? []).map((p) => UserProfile.fromMap(p)).toList(),
-      activeProfileId: map['activeProfileId'] ?? '',
+      profiles: loadedProfiles,
+      activeProfileId: map['activeProfileId'] ?? (loadedProfiles.isNotEmpty ? loadedProfiles.first.id : ''),
       theme: map['theme'] ?? 'Coastal',
       emailReminders: map['emailReminders'] ?? true,
       smsReminders: map['smsReminders'] ?? true,
@@ -299,6 +354,18 @@ class Account {
   ColorPalette get palette => AppPalettes.fromName(theme);
 
   UserProfile get activeProfile {
+    if (profiles.isEmpty) {
+      return UserProfile(
+        id: id,
+        accountId: id,
+        name: name,
+        clientId: id,
+        dob: dateOfBirth,
+        phone: primaryPhone,
+        primaryPhone: primaryPhone,
+        isAccountHolder: true,
+      );
+    }
     return profiles.firstWhere(
       (p) => p.id == activeProfileId,
       orElse: () => profiles.first,
@@ -308,7 +375,7 @@ class Account {
   String get initials {
     final active = activeProfile;
     final parts = active.name.trim().split(' ');
-    if (parts.length >= 2) {
+    if (parts.length >= 2 && parts[0].isNotEmpty && parts[parts.length - 1].isNotEmpty) {
       return '${parts[0][0]}${parts[parts.length - 1][0]}'.toUpperCase();
     }
     return active.name.isNotEmpty ? active.name[0].toUpperCase() : '?';
@@ -331,7 +398,7 @@ void loadDefaultAccount() {
   currentAccount = Account(
     id: 'CL-1042',
     name: 'Jamie Chen',
-    primaryEmail: 'jamie.chen@example.com',
+    primaryEmail: 'jamie.chen@clinicflow.app',
     primaryPhone: '613-555-0142',
     dateOfBirth: DateTime(1992, 3, 12),
     role: UserRole.patient,
@@ -340,6 +407,7 @@ void loadDefaultAccount() {
     profiles: [
       UserProfile(
         id: 'CL-1042',
+        accountId: 'CL-1042',
         name: 'Jamie Chen',
         clientId: 'CL-1042',
         dob: DateTime(1992, 3, 12),
@@ -353,6 +421,7 @@ void loadDefaultAccount() {
       ),
       UserProfile(
         id: 'CL-1186',
+        accountId: 'CL-1042',
         name: 'Olivia Chen',
         clientId: 'CL-1186',
         dob: DateTime(1985, 8, 24),
@@ -366,6 +435,7 @@ void loadDefaultAccount() {
       ),
       UserProfile(
         id: 'CL-1253',
+        accountId: 'CL-1042',
         name: 'Daniel Chen',
         clientId: 'CL-1253',
         dob: DateTime(1978, 2, 6),
