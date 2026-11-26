@@ -13,7 +13,6 @@ class UpcomingAppointment extends StatelessWidget {
 
   void _showAppointmentPopup(BuildContext context) {
     final date = appointment.dateTime;
-    final duration = appointment.duration;
 
     showDialog(
       context: context,
@@ -28,11 +27,15 @@ class UpcomingAppointment extends StatelessWidget {
             const SizedBox(height: 8.0),
             BetterText(text: currentAccount.t('date_label', replacements: ["${getWeekDay(dateTime: date)}, ${getMonth(dateTime: date)} ${getDay(dateTime: date)} ${date.year}"]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: currentAccount.t('time_label', replacements: ["${getTime(timeOfDay: TimeOfDay(hour: date.hour, minute: date.minute))} (${duration.inMinutes} min)"]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('time_label', replacements: ["${formatDateTimeTime(date)} (${appointment.formattedDuration})"]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: currentAccount.t('description_label', replacements: [appointment.description]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('description_label', replacements: [currentAccount.translateAppointmentType(appointment.description)]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            if (appointment.reason.isNotEmpty) ...[
+              const SizedBox(height: 6.0),
+              BetterText(text: currentAccount.t('reason_label', replacements: [appointment.reason]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            ],
             const SizedBox(height: 6.0),
-            BetterText(text: currentAccount.t('status_label', replacements: [appointment.status]), size: 14.0, colour: currentAccount.palette.primary),
+            BetterText(text: currentAccount.t('status_label', replacements: [currentAccount.translateStatus(appointment.status)]), size: 14.0, colour: currentAccount.palette.primary),
           ],
         ),
         actionsAlignment: MainAxisAlignment.spaceBetween,
@@ -60,7 +63,6 @@ class UpcomingAppointment extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final date = appointment.dateTime;
-    final duration = appointment.duration;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 12.0),
@@ -78,21 +80,13 @@ class UpcomingAppointment extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       BetterText(
-                        text: getTime(
-                          timeOfDay: TimeOfDay(
-                            hour: date.hour,
-                            minute: date.minute,
-                          ),
-                        ),
+                        text: formatDateTimeTime(date),
                         colour: currentAccount.palette.textPrimary,
                       ),
                       BetterText(
-                        text: getTime(
-                          timeOfDay: TimeOfDay(
-                            hour: date.add(duration).hour,
-                            minute: date.add(duration).minute,
-                          ),
-                        ),
+                        text: appointment.isDurationUnknown
+                            ? currentAccount.t('unknown_length')
+                            : formatDateTimeTime(appointment.endDateTime),
                         size: 11.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
@@ -110,7 +104,7 @@ class UpcomingAppointment extends StatelessWidget {
                       BetterText(text: appointment.clientName, colour: currentAccount.palette.textPrimary),
                       BetterText(
                         text:
-                            "${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • ${appointment.description} • ${duration.inMinutes} min",
+                            "${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • ${currentAccount.translateAppointmentType(appointment.description)} • ${appointment.formattedDuration}",
                         size: 11.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
@@ -128,7 +122,11 @@ class UpcomingAppointment extends StatelessWidget {
                   children: [
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                      child: BetterText(text: appointment.status, size: 12.0, colour: currentAccount.palette.textPrimary),
+                      child: BetterText(
+                        text: currentAccount.translateStatus(appointment.status),
+                        size: 12.0,
+                        colour: currentAccount.palette.textPrimary,
+                      ),
                     ),
                     Icon(Icons.keyboard_arrow_right, color: currentAccount.palette.textPrimary),
                   ],
@@ -150,12 +148,22 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  late List<Announcement> _announcements;
-
-  @override
-  void initState() {
-    super.initState();
-    _announcements = Announcement.retrieveAnnouncements();
+  DateTime _computeNextAvailableOpening(List<ClinicOpening> openings, List<BookedSlot> bookedSlots) {
+    if (openings.isNotEmpty) {
+      return openings.first.dateTime;
+    }
+    final now = DateTime.now();
+    for (int dayOffset = 1; dayOffset <= 14; dayOffset++) {
+      final day = DateTime(now.year, now.month, now.day + dayOffset);
+      for (int hour = 9; hour <= 17; hour++) {
+        final candidate = DateTime(day.year, day.month, day.day, hour, 0);
+        final taken = bookedSlots.any((s) => s.overlaps(candidate, const Duration(minutes: 60)));
+        if (!taken) {
+          return candidate;
+        }
+      }
+    }
+    return DateTime(now.year, now.month, now.day + 1, 9, 0);
   }
 
   void _showCodePopup(BuildContext context) {
@@ -190,14 +198,23 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  void _showReviewOpeningPopup(BuildContext context, Appointment? targetAppt, DateTime openingDate) {
+  void _showReviewOpeningPopup(
+    BuildContext context,
+    Appointment? targetAppt,
+    DateTime openingDate, {
+    String? openingDocId,
+  }) {
+    final endOpening = openingDate.add(const Duration(minutes: 60));
+    final dateLabel = "${getWeekDay(truncate: true, dateTime: openingDate)}, ${openingDate.day} ${getMonth(truncate: true, dateTime: openingDate)}";
+    final timeRange = "${formatDateTimeTime(openingDate)}–${formatDateTimeTime(endOpening)}";
+
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: currentAccount.palette.background,
         title: BetterText(text: currentAccount.t('opening_review'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
         content: BetterText(
-          text: "Available opening on ${getWeekDay(truncate: true, dateTime: openingDate)}, ${openingDate.day} ${getMonth(truncate: true, dateTime: openingDate)} • 09:00-09:30. Would you like to bring your appointment forward?",
+          text: currentAccount.t('opening_review_body', replacements: [dateLabel, timeRange]),
           size: 14.0,
           colour: currentAccount.palette.textPrimary,
         ),
@@ -225,6 +242,9 @@ class _HomePageState extends State<HomePage> {
                   ),
                 );
               }
+              if (openingDocId != null && openingDocId.isNotEmpty) {
+                await FirestoreService.claimOpening(openingDocId);
+              }
               if (!context.mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text(currentAccount.t('opening_claimed'))),
@@ -240,8 +260,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final palette = currentAccount.palette;
-    final now = DateTime.now();
-    final tomorrowOpening = DateTime(now.year, now.month, now.day + 1, 9, 0);
 
     return Scaffold(
       backgroundColor: palette.background,
@@ -261,12 +279,11 @@ class _HomePageState extends State<HomePage> {
           final nextAppt = upcoming.isNotEmpty ? upcoming.first : null;
           final bool isCheckedIn = nextAppt != null && nextAppt.status == 'Checked in';
 
-          String nextTimeRange = '14:30–15:00';
+          String nextTimeRange = '';
           if (nextAppt != null) {
-            final start = TimeOfDay(hour: nextAppt.dateTime.hour, minute: nextAppt.dateTime.minute);
-            final endDt = nextAppt.dateTime.add(nextAppt.duration);
-            final end = TimeOfDay(hour: endDt.hour, minute: endDt.minute);
-            nextTimeRange = '${getTime(timeOfDay: start)}–${getTime(timeOfDay: end)}';
+            nextTimeRange = nextAppt.isDurationUnknown
+                ? formatDateTimeTime(nextAppt.dateTime)
+                : '${formatDateTimeTime(nextAppt.dateTime)}–${formatDateTimeTime(nextAppt.endDateTime)}';
           }
 
           return GestureDetector(
@@ -288,7 +305,7 @@ class _HomePageState extends State<HomePage> {
                           colour: palette.textPrimary,
                         ),
                         BetterText(
-                          text: "${upcoming.length} ${currentAccount.t('upcoming_appointments')} • Updated ${getTime()}",
+                          text: "${upcoming.length} ${currentAccount.t('upcoming_appointments')} • ${currentAccount.t('updated_at', replacements: [getTime()])}",
                           size: 12.0,
                           colour: palette.textSecondary,
                         ),
@@ -319,7 +336,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 BetterText(
                                   text: nextAppt != null
-                                      ? "${nextAppt.description} • $nextTimeRange"
+                                      ? "${currentAccount.translateAppointmentType(nextAppt.description)} • $nextTimeRange"
                                       : currentAccount.t('no_upcoming_booking'),
                                   colour: palette.textSecondary,
                                 ),
@@ -358,48 +375,66 @@ class _HomePageState extends State<HomePage> {
                   ),
                   Padding(
                     padding: const EdgeInsets.symmetric(vertical: 6.0),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        BetterText(text: currentAccount.t('announcements'), size: 22.0, weight: 600, colour: palette.textPrimary),
-                        for (int i = 0; i < _announcements.length; i++)
-                          if (_announcements[i].isVisible)
-                            Container(
-                              width: double.infinity,
-                              margin: const EdgeInsets.symmetric(vertical: 4.0),
-                              child: Stack(
-                                children: [
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.fromLTRB(24.0, 12.0, 40.0, 12.0),
-                                    decoration: ShapeDecoration(
-                                      color: palette.announcementColors[i % palette.announcementColors.length].withAlpha(25),
-                                      shape: BoxBorder.fromLTRB(left: BorderSide(color: palette.announcementColors[i % palette.announcementColors.length], width: 4.0)),
-                                    ),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        BetterText(text: _announcements[i].title, weight: 600, colour: palette.textPrimary),
-                                        BetterText(text: _announcements[i].description, colour: palette.textPrimary),
-                                      ],
-                                    ),
+                    child: StreamBuilder<List<Announcement>>(
+                      stream: FirestoreService.streamNotifications(currentAccount.id),
+                      builder: (context, notifSnapshot) {
+                        final notifications = notifSnapshot.data ?? [];
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            BetterText(text: currentAccount.t('announcements'), size: 22.0, weight: 600, colour: palette.textPrimary),
+                            if (notifications.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                                child: BetterText(
+                                  text: currentAccount.t('no_announcements'),
+                                  size: 13.0,
+                                  colour: palette.textSecondary,
+                                ),
+                              )
+                            else
+                              for (int i = 0; i < notifications.length; i++)
+                                Container(
+                                  width: double.infinity,
+                                  margin: const EdgeInsets.symmetric(vertical: 4.0),
+                                  child: Stack(
+                                    children: [
+                                      Container(
+                                        width: double.infinity,
+                                        padding: const EdgeInsets.fromLTRB(24.0, 12.0, 40.0, 12.0),
+                                        decoration: ShapeDecoration(
+                                          color: palette.announcementColors[i % palette.announcementColors.length].withAlpha(25),
+                                          shape: BoxBorder.fromLTRB(
+                                            left: BorderSide(
+                                              color: palette.announcementColors[i % palette.announcementColors.length],
+                                              width: 4.0,
+                                            ),
+                                          ),
+                                        ),
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            BetterText(text: notifications[i].title, weight: 600, colour: palette.textPrimary),
+                                            BetterText(text: notifications[i].description, colour: palette.textPrimary),
+                                          ],
+                                        ),
+                                      ),
+                                      Positioned(
+                                        right: 8,
+                                        top: 8,
+                                        child: IconButton(
+                                          icon: Icon(Icons.close, size: 18, color: palette.textSecondary),
+                                          onPressed: () {
+                                            FirestoreService.dismissNotification(currentAccount.id, notifications[i].id);
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ),
-                                  Positioned(
-                                    right: 8,
-                                    top: 8,
-                                    child: IconButton(
-                                      icon: Icon(Icons.close, size: 18, color: palette.textSecondary),
-                                      onPressed: () {
-                                        setState(() {
-                                          _announcements[i].isVisible = false;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                      ],
+                                ),
+                          ],
+                        );
+                      },
                     ),
                   ),
                   Padding(
@@ -427,51 +462,129 @@ class _HomePageState extends State<HomePage> {
                       ],
                     ),
                   ),
-                  Container(
-                    padding: const EdgeInsets.all(12.0),
-                    decoration: BoxDecoration(
-                      border: Border.all(color: palette.smoke, width: 1.5),
-                      borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-                      color: palette.secondary,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        BetterText(text: currentAccount.t('available_opening'), weight: 600, colour: palette.textPrimary),
-                        BetterText(
-                          text: "${getWeekDay(truncate: true, dateTime: tomorrowOpening)}, ${tomorrowOpening.day} ${getMonth(truncate: true, dateTime: tomorrowOpening)} • 09:00-09:30",
-                          weight: 600,
-                          size: 18.0,
-                          colour: palette.textPrimary,
-                        ),
-                        BetterText(
-                          text: currentAccount.t(
-                            "bring_appointment_forward",
-                            replacements: [
-                              "${(upcoming.isNotEmpty ? upcoming.last.dateTime : tomorrowOpening).day}",
-                              getMonth(truncate: true, dateTime: upcoming.isNotEmpty ? upcoming.last.dateTime : tomorrowOpening),
-                              (upcoming.isNotEmpty ? upcoming.last.description : "follow-up").toLowerCase(),
-                            ],
-                          ),
-                          colour: palette.textSecondary,
-                        ),
-                        TextButton(
-                          onPressed: () => _showReviewOpeningPopup(
-                            context,
-                            upcoming.isNotEmpty ? upcoming.last : null,
-                            tomorrowOpening,
-                          ),
-                          style: TextButton.styleFrom(
-                            shape: RoundedRectangleBorder(
-                              side: BorderSide(color: palette.smoke, width: 1.5),
-                              borderRadius: const BorderRadius.all(Radius.circular(6.0)),
-                            ),
-                            backgroundColor: palette.background,
-                          ),
-                          child: BetterText(text: currentAccount.t('review_opening'), weight: 600, colour: palette.textPrimary),
-                        ),
-                      ],
-                    ),
+                  StreamBuilder<List<ClinicOpening>>(
+                    stream: FirestoreService.streamOpenings(),
+                    builder: (context, openingsSnap) {
+                      return StreamBuilder<List<BookedSlot>>(
+                        stream: FirestoreService.streamBookedSlots(),
+                        builder: (context, slotsSnap) {
+                          return StreamBuilder<List<WaitlistEntry>>(
+                            stream: FirestoreService.streamWaitlistForAccount(currentAccount.id),
+                            builder: (context, waitlistSnap) {
+                              final openings = openingsSnap.data ?? [];
+                              final bookedSlots = slotsSnap.data ?? [];
+                              final waitlistEntries = waitlistSnap.data ?? [];
+                              final nextOpening = _computeNextAvailableOpening(openings, bookedSlots);
+                              final openingDocId = openings.isNotEmpty ? openings.first.id : null;
+                              final nextOpeningEnd = nextOpening.add(const Duration(minutes: 60));
+                              final activeWaitlist = waitlistEntries.isNotEmpty ? waitlistEntries.first : null;
+
+                              return Container(
+                                padding: const EdgeInsets.all(12.0),
+                                decoration: BoxDecoration(
+                                  border: Border.all(color: palette.smoke, width: 1.5),
+                                  borderRadius: const BorderRadius.all(Radius.circular(10.0)),
+                                  color: palette.secondary,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    BetterText(text: currentAccount.t('available_opening'), weight: 600, colour: palette.textPrimary),
+                                    BetterText(
+                                      text: "${getWeekDay(truncate: true, dateTime: nextOpening)}, ${nextOpening.day} ${getMonth(truncate: true, dateTime: nextOpening)} • ${formatDateTimeTime(nextOpening)}–${formatDateTimeTime(nextOpeningEnd)}",
+                                      weight: 600,
+                                      size: 18.0,
+                                      colour: palette.textPrimary,
+                                    ),
+                                    BetterText(
+                                      text: currentAccount.t(
+                                        "bring_appointment_forward",
+                                        replacements: [
+                                          "${(upcoming.isNotEmpty ? upcoming.last.dateTime : nextOpening).day}",
+                                          getMonth(truncate: true, dateTime: upcoming.isNotEmpty ? upcoming.last.dateTime : nextOpening),
+                                          currentAccount.translateAppointmentType(
+                                            upcoming.isNotEmpty ? upcoming.last.description : currentAccount.t('follow_up'),
+                                          ).toLowerCase(),
+                                        ],
+                                      ),
+                                      colour: palette.textSecondary,
+                                    ),
+                                    const SizedBox(height: 8.0),
+                                    TextButton(
+                                      onPressed: () => _showReviewOpeningPopup(
+                                        context,
+                                        upcoming.isNotEmpty ? upcoming.last : null,
+                                        nextOpening,
+                                        openingDocId: openingDocId,
+                                      ),
+                                      style: TextButton.styleFrom(
+                                        shape: RoundedRectangleBorder(
+                                          side: BorderSide(color: palette.smoke, width: 1.5),
+                                          borderRadius: const BorderRadius.all(Radius.circular(6.0)),
+                                        ),
+                                        backgroundColor: palette.background,
+                                      ),
+                                      child: BetterText(text: currentAccount.t('review_opening'), weight: 600, colour: palette.textPrimary),
+                                    ),
+                                    const SizedBox(height: 6.0),
+                                    OutlinedButton.icon(
+                                      onPressed: () async {
+                                        if (activeWaitlist != null) {
+                                          await FirestoreService.leaveWaitlist(activeWaitlist.id);
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(currentAccount.t('waitlist_left'))),
+                                          );
+                                        } else {
+                                          await FirestoreService.joinWaitlist(
+                                            WaitlistEntry(
+                                              id: '',
+                                              accountId: currentAccount.id,
+                                              profileId: currentAccount.activeProfile.id,
+                                              clientName: currentAccount.activeProfile.name,
+                                              preferredDateTime: nextOpening,
+                                              appointmentType: upcoming.isNotEmpty
+                                                  ? upcoming.last.description
+                                                  : currentAccount.t('follow_up'),
+                                            ),
+                                          );
+                                          if (!context.mounted) return;
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            SnackBar(content: Text(currentAccount.t('waitlist_joined'))),
+                                          );
+                                        }
+                                      },
+                                      style: OutlinedButton.styleFrom(
+                                        side: BorderSide(
+                                          color: activeWaitlist != null ? Colors.red : palette.primary,
+                                          width: 1.5,
+                                        ),
+                                        backgroundColor: palette.background,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: const BorderRadius.all(Radius.circular(6.0)),
+                                        ),
+                                      ),
+                                      icon: Icon(
+                                        activeWaitlist != null ? Icons.notifications_off_outlined : Icons.hourglass_top,
+                                        size: 18,
+                                        color: activeWaitlist != null ? Colors.red : palette.primary,
+                                      ),
+                                      label: BetterText(
+                                        text: activeWaitlist != null
+                                            ? currentAccount.t('on_waitlist')
+                                            : currentAccount.t('join_waitlist'),
+                                        weight: 600,
+                                        colour: activeWaitlist != null ? Colors.red : palette.primary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            },
+                          );
+                        },
+                      );
+                    },
                   ),
                 ],
               ),

@@ -38,12 +38,19 @@ class StaffProfileCard extends StatelessWidget {
           ),
           const SizedBox(height: 4.0),
           BetterText(
-            text: "${profile.formattedDob} · Secondary: ${profile.phone}",
+            text: "${profile.formattedDob} · ${currentAccount.t('secondary')}: ${profile.phone}",
             size: 12.0,
             colour: currentAccount.palette.textSecondary,
           ),
           const SizedBox(height: 8.0),
-          BetterText(text: profile.upcomingBooking, size: 14.0, weight: 500, colour: currentAccount.palette.textPrimary),
+          BetterText(
+            text: profile.upcomingBooking == 'No upcoming booking'
+                ? currentAccount.t('no_upcoming_booking')
+                : profile.upcomingBooking,
+            size: 14.0,
+            weight: 500,
+            colour: currentAccount.palette.textPrimary,
+          ),
           const SizedBox(height: 2.0),
           BetterText(
             text: profile.bookingSubInfo,
@@ -114,6 +121,7 @@ class ProfilesPage extends StatefulWidget {
 class _ProfilesPageState extends State<ProfilesPage> {
   void _manageClient(UserProfile profile) {
     final notesController = TextEditingController(text: profile.notes);
+    final medReminderController = TextEditingController();
 
     showDialog(
       context: context,
@@ -138,12 +146,20 @@ class _ProfilesPageState extends State<ProfilesPage> {
               TextField(
                 controller: notesController,
                 maxLines: 4,
-                decoration: InputDecoration(
+                style: TextStyle(color: currentAccount.palette.textPrimary),
+                decoration: themedInputDecoration(
                   hintText: currentAccount.t('patient_notes_placeholder'),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8.0),
-                    borderSide: BorderSide(color: currentAccount.palette.smoke),
-                  ),
+                ),
+              ),
+              const SizedBox(height: 16.0),
+              BetterText(text: currentAccount.t('add_medication_reminder'), weight: 600, size: 14.0, colour: currentAccount.palette.primary),
+              const SizedBox(height: 6.0),
+              TextField(
+                controller: medReminderController,
+                maxLines: 2,
+                style: TextStyle(color: currentAccount.palette.textPrimary),
+                decoration: themedInputDecoration(
+                  hintText: currentAccount.t('medication_reminder_hint'),
                 ),
               ),
             ],
@@ -157,12 +173,26 @@ class _ProfilesPageState extends State<ProfilesPage> {
           TextButton(
             onPressed: () async {
               profile.notes = notesController.text.trim();
+              final medInstructions = medReminderController.text.trim();
               final ownerAccountId = profile.accountId.isNotEmpty ? profile.accountId : currentAccount.id;
               Navigator.pop(ctx);
               await FirestoreService.saveProfile(ownerAccountId, profile);
+              if (medInstructions.isNotEmpty) {
+                await FirestoreService.sendMedicationReminder(
+                  accountId: ownerAccountId,
+                  patientName: profile.name,
+                  instructions: medInstructions,
+                );
+              }
               if (!mounted) return;
               ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(currentAccount.t('client_notes_updated'))),
+                SnackBar(
+                  content: Text(
+                    medInstructions.isNotEmpty
+                        ? currentAccount.t('medication_reminder_sent')
+                        : currentAccount.t('client_notes_updated'),
+                  ),
+                ),
               );
             },
             child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),

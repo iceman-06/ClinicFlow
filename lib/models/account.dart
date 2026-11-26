@@ -26,7 +26,9 @@ class BookedSlot {
     required this.duration,
   });
 
-  DateTime get endTime => dateTime.add(duration);
+  Duration get effectiveDuration => duration.inMinutes > 0 ? duration : const Duration(minutes: 60);
+
+  DateTime get endTime => dateTime.add(effectiveDuration);
 
   bool overlaps(DateTime slotStart, Duration slotDuration) {
     final slotEnd = slotStart.add(slotDuration);
@@ -129,11 +131,11 @@ class UserProfile {
   }
 
   String _getMonthName(int month) {
-    const months = [
-      "Jan", "Feb", "Mar", "Apr", "May", "Jun",
-      "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
+    const keys = [
+      "jan", "feb", "mar", "apr", "may", "jun",
+      "jul", "aug", "sep", "oct", "nov", "dec"
     ];
-    return months[month - 1];
+    return currentAccount.t(keys[month - 1]);
   }
 }
 
@@ -145,6 +147,7 @@ class Appointment {
   DateTime dateTime;
   Duration duration;
   String description;
+  String reason;
   String status;
   String notes;
 
@@ -156,6 +159,7 @@ class Appointment {
     required this.dateTime,
     required this.duration,
     required this.description,
+    this.reason = '',
     required this.status,
     this.notes = '',
   }) {
@@ -163,6 +167,13 @@ class Appointment {
   }
 
   static void Function(Appointment)? onCreated;
+
+  bool get isDurationUnknown => duration.inMinutes <= 0;
+
+  DateTime get endDateTime => dateTime.add(isDurationUnknown ? const Duration(minutes: 60) : duration);
+
+  String get formattedDuration =>
+      isDurationUnknown ? currentAccount.t('unknown_length') : '${duration.inMinutes} min';
 
   Map<String, dynamic> toMap() {
     return {
@@ -173,6 +184,7 @@ class Appointment {
       'dateTime': dateTime.toIso8601String(),
       'duration': duration.inMinutes,
       'description': description,
+      'reason': reason,
       'status': status,
       'notes': notes,
     };
@@ -187,6 +199,7 @@ class Appointment {
       dateTime: _parseDateTime(map['dateTime']),
       duration: Duration(minutes: (map['duration'] as num?)?.toInt() ?? 30),
       description: map['description'] ?? '',
+      reason: map['reason'] ?? '',
       status: map['status'] ?? 'Upcoming',
       notes: map['notes'] ?? '',
     );
@@ -213,46 +226,123 @@ class Announcement {
   String id;
   String title;
   String description;
+  String type;
   bool isVisible;
+  DateTime createdAt;
 
   Announcement({
     required this.id,
     required this.title,
     required this.description,
+    this.type = 'info',
     this.isVisible = true,
-  });
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'title': title,
       'description': description,
+      'type': type,
       'isVisible': isVisible,
+      'createdAt': createdAt.toIso8601String(),
     };
   }
 
-  factory Announcement.fromMap(Map<String, dynamic> map) {
+  factory Announcement.fromMap(Map<String, dynamic> map, {String? docId}) {
     return Announcement(
-      id: map['id'] ?? '',
+      id: docId ?? map['id'] ?? '',
       title: map['title'] ?? '',
       description: map['description'] ?? '',
+      type: map['type'] ?? 'info',
       isVisible: map['isVisible'] ?? true,
+      createdAt: _parseDateTime(map['createdAt']),
     );
   }
+}
 
-  static List<Announcement> retrieveAnnouncements() {
-    return [
-      Announcement(
-        id: 'ann-1',
-        title: currentAccount.t("appointment_in_minutes", replacements: ["20"]),
-        description: "${currentAccount.activeProfile.name} • ${currentAccount.t("today")}, 14:30-15:00",
-      ),
-      Announcement(
-        id: 'ann-2',
-        title: currentAccount.t("medication_reminder"),
-        description: currentAccount.t("remember_medication"),
-      ),
-    ];
+class WaitlistEntry {
+  String id;
+  String accountId;
+  String profileId;
+  String clientName;
+  DateTime preferredDateTime;
+  String appointmentType;
+  int durationMinutes;
+  String status;
+  DateTime createdAt;
+
+  WaitlistEntry({
+    required this.id,
+    required this.accountId,
+    required this.profileId,
+    required this.clientName,
+    required this.preferredDateTime,
+    this.appointmentType = 'Follow-up',
+    this.durationMinutes = 30,
+    this.status = 'waiting',
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'accountId': accountId,
+      'profileId': profileId,
+      'clientName': clientName,
+      'preferredDateTime': preferredDateTime.toIso8601String(),
+      'appointmentType': appointmentType,
+      'durationMinutes': durationMinutes,
+      'status': status,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory WaitlistEntry.fromMap(Map<String, dynamic> map, {String? docId}) {
+    return WaitlistEntry(
+      id: docId ?? map['id'] ?? '',
+      accountId: map['accountId'] ?? '',
+      profileId: map['profileId'] ?? '',
+      clientName: map['clientName'] ?? '',
+      preferredDateTime: _parseDateTime(map['preferredDateTime']),
+      appointmentType: map['appointmentType'] ?? 'Follow-up',
+      durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 30,
+      status: map['status'] ?? 'waiting',
+      createdAt: _parseDateTime(map['createdAt']),
+    );
+  }
+}
+
+class ClinicOpening {
+  String id;
+  DateTime dateTime;
+  int durationMinutes;
+  DateTime createdAt;
+
+  ClinicOpening({
+    required this.id,
+    required this.dateTime,
+    this.durationMinutes = 30,
+    DateTime? createdAt,
+  }) : createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'dateTime': dateTime.toIso8601String(),
+      'durationMinutes': durationMinutes,
+      'createdAt': createdAt.toIso8601String(),
+    };
+  }
+
+  factory ClinicOpening.fromMap(Map<String, dynamic> map, {String? docId}) {
+    return ClinicOpening(
+      id: docId ?? map['id'] ?? '',
+      dateTime: _parseDateTime(map['dateTime']),
+      durationMinutes: (map['durationMinutes'] as num?)?.toInt() ?? 30,
+      createdAt: _parseDateTime(map['createdAt']),
+    );
   }
 }
 
@@ -273,6 +363,7 @@ class Account {
   bool virtualCheckInEnabled;
   bool staffNotifications;
   bool automatedCheckInPrompts;
+  bool use24HourTime;
   String privacyStatusText;
   AppLanguage language;
 
@@ -291,6 +382,7 @@ class Account {
     this.virtualCheckInEnabled = true,
     this.staffNotifications = true,
     this.automatedCheckInPrompts = true,
+    this.use24HourTime = true,
     this.privacyStatusText = "Review",
     this.language = AppLanguage.english,
   }) {
@@ -314,6 +406,7 @@ class Account {
       'virtualCheckInEnabled': virtualCheckInEnabled,
       'staffNotifications': staffNotifications,
       'automatedCheckInPrompts': automatedCheckInPrompts,
+      'use24HourTime': use24HourTime,
       'privacyStatusText': privacyStatusText,
       'language': language.name,
     };
@@ -336,6 +429,7 @@ class Account {
       virtualCheckInEnabled: map['virtualCheckInEnabled'] ?? true,
       staffNotifications: map['staffNotifications'] ?? true,
       automatedCheckInPrompts: map['automatedCheckInPrompts'] ?? true,
+      use24HourTime: map['use24HourTime'] ?? true,
       privacyStatusText: map['privacyStatusText'] ?? 'Review',
       language: map['language'] == 'french' ? AppLanguage.french : AppLanguage.english,
     );
@@ -389,7 +483,15 @@ class Account {
     language = language == AppLanguage.english ? AppLanguage.french : AppLanguage.english;
   }
 
+  void toggleTimeFormat() {
+    use24HourTime = !use24HourTime;
+  }
+
   String t(String key, {List<String>? replacements}) => AppLocalizations.get(language, key, replacements);
+
+  String translateStatus(String status) => AppLocalizations.translateStatus(language, status);
+
+  String translateAppointmentType(String type) => AppLocalizations.translateAppointmentType(language, type);
 }
 
 late Account currentAccount;

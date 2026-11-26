@@ -42,6 +42,26 @@ class BetterText extends StatelessWidget {
   }
 }
 
+InputDecoration themedInputDecoration({
+  String? labelText,
+  String? hintText,
+}) {
+  final palette = currentAccount.palette;
+  return InputDecoration(
+    labelText: labelText,
+    hintText: hintText,
+    labelStyle: TextStyle(color: palette.textSecondary),
+    hintStyle: TextStyle(color: palette.textSecondary),
+    enabledBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: palette.smoke),
+    ),
+    focusedBorder: OutlineInputBorder(
+      borderSide: BorderSide(color: palette.primary, width: 1.5),
+    ),
+    border: const OutlineInputBorder(),
+  );
+}
+
 class ProfileIconButton extends StatelessWidget {
   const ProfileIconButton({super.key});
 
@@ -61,7 +81,7 @@ class ProfileIconButton extends StatelessWidget {
             const SizedBox(height: 6.0),
             BetterText(text: currentAccount.t('client_id', replacements: [currentAccount.activeProfile.clientId]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: "${currentAccount.t('account_type')}: ${currentAccount.isStaff ? currentAccount.t('clinic_staff_member') : 'Patient'}", size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: "${currentAccount.t('account_type')}: ${currentAccount.isStaff ? currentAccount.t('clinic_staff_member') : currentAccount.t('patient')}", size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
             BetterText(text: currentAccount.t('primary_email_value', replacements: [currentAccount.primaryEmail]), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
@@ -94,20 +114,18 @@ class ProfileIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final palette = currentAccount.palette;
     return GestureDetector(
       onTap: () => _showProfilePopup(context),
       child: CircleAvatar(
-        backgroundColor: currentAccount.isStaff ? const Color(0xFF2867B2) : const Color(0xFF23866D),
+        backgroundColor: currentAccount.isStaff ? const Color(0xFF1D4ED8) : const Color(0xFF0F766E),
         child: Text(
           currentAccount.initials,
-          style: TextStyle(color: palette.textPrimary, fontWeight: FontWeight.bold),
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
     );
   }
 }
-
 
 class HelpMenuButton extends StatelessWidget {
   const HelpMenuButton({super.key});
@@ -128,6 +146,7 @@ class HelpMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<String>(
+      color: currentAccount.palette.background,
       tooltip: currentAccount.t('help'),
       icon: Icon(
         Icons.arrow_drop_down,
@@ -148,7 +167,10 @@ class HelpMenuButton extends StatelessWidget {
       itemBuilder: (_) => menuItems.map((item) {
         return PopupMenuItem<String>(
           value: item['value'],
-          child: Text(currentAccount.t(item['label']!)),
+          child: Text(
+            currentAccount.t(item['label']!),
+            style: TextStyle(color: currentAccount.palette.textPrimary),
+          ),
         );
       }).toList(),
     );
@@ -325,6 +347,15 @@ class SettingsTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final bool isHighlighted = trailingText == currentAccount.t('on') ||
+        trailingText == currentAccount.t('enabled') ||
+        trailingText == "On" ||
+        trailingText == "Enabled" ||
+        trailingText == "English" ||
+        trailingText == "Français" ||
+        trailingText == currentAccount.t('time_12h') ||
+        trailingText == currentAccount.t('time_24h');
+
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -338,7 +369,7 @@ class SettingsTile extends StatelessWidget {
                 BetterText(
                   text: trailingText,
                   size: 15.0,
-                  colour: trailingText == "On" || trailingText == "Enabled" || trailingText == "English" || trailingText == "Français"
+                  colour: isHighlighted
                       ? currentAccount.palette.textPrimary
                       : currentAccount.palette.textSecondary,
                 ),
@@ -518,5 +549,23 @@ String getDay({bool suffix = false, DateTime? dateTime}) {
 
 String getTime({TimeOfDay? timeOfDay}) {
   timeOfDay ??= TimeOfDay.now();
-  return "${timeOfDay.hour}:${"${timeOfDay.minute}".padLeft(2, "0")}";
+  final minuteStr = "${timeOfDay.minute}".padLeft(2, "0");
+  if (currentAccount.use24HourTime) {
+    return "${timeOfDay.hour.toString().padLeft(2, "0")}:$minuteStr";
+  }
+  final period = timeOfDay.hour >= 12 ? "PM" : "AM";
+  final hour12 = timeOfDay.hour % 12 == 0 ? 12 : timeOfDay.hour % 12;
+  return "$hour12:$minuteStr $period";
+}
+
+String formatTimeString(String hhmm) {
+  final parts = hhmm.split(':');
+  if (parts.length != 2) return hhmm;
+  final h = int.tryParse(parts[0]) ?? 9;
+  final m = int.tryParse(parts[1]) ?? 0;
+  return getTime(timeOfDay: TimeOfDay(hour: h, minute: m));
+}
+
+String formatDateTimeTime(DateTime dt) {
+  return getTime(timeOfDay: TimeOfDay(hour: dt.hour, minute: dt.minute));
 }

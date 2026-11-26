@@ -30,9 +30,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
 
   void _showStaffAppointmentPopup(BuildContext context) {
     final dt = widget.appointment.dateTime;
-    final endDt = dt.add(widget.appointment.duration);
-    final startTime = getTime(timeOfDay: TimeOfDay(hour: dt.hour, minute: dt.minute));
-    final endTime = getTime(timeOfDay: TimeOfDay(hour: endDt.hour, minute: endDt.minute));
+    final startTime = formatDateTimeTime(dt);
+    final endTime = widget.appointment.isDurationUnknown
+        ? currentAccount.t('unknown_length')
+        : formatDateTimeTime(widget.appointment.endDateTime);
     String selectedStatus = _validStatuses.contains(widget.appointment.status)
         ? widget.appointment.status
         : "Upcoming";
@@ -51,7 +52,11 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
               const SizedBox(height: 8.0),
               BetterText(text: currentAccount.t('time_label', replacements: ["$startTime – $endTime"]), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
-              BetterText(text: currentAccount.t('description_label', replacements: [widget.appointment.description]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('description_label', replacements: [currentAccount.translateAppointmentType(widget.appointment.description)]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              if (widget.appointment.reason.isNotEmpty) ...[
+                const SizedBox(height: 6.0),
+                BetterText(text: currentAccount.t('reason_label', replacements: [widget.appointment.reason]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              ],
               const SizedBox(height: 12.0),
               BetterText(text: currentAccount.t('change_status'), weight: 600, size: 13.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
@@ -61,7 +66,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                 items: _validStatuses
                     .map((status) => DropdownMenuItem(
                           value: status,
-                          child: BetterText(text: status, colour: currentAccount.palette.textPrimary),
+                          child: BetterText(
+                            text: currentAccount.translateStatus(status),
+                            colour: currentAccount.palette.textPrimary,
+                          ),
                         ))
                     .toList(),
                 onChanged: (newVal) async {
@@ -101,9 +109,10 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
   @override
   Widget build(BuildContext context) {
     final dt = widget.appointment.dateTime;
-    final endDt = dt.add(widget.appointment.duration);
-    final startTime = getTime(timeOfDay: TimeOfDay(hour: dt.hour, minute: dt.minute));
-    final endTime = getTime(timeOfDay: TimeOfDay(hour: endDt.hour, minute: endDt.minute));
+    final startTime = formatDateTimeTime(dt);
+    final endTime = widget.appointment.isDurationUnknown
+        ? currentAccount.t('unknown_length')
+        : formatDateTimeTime(widget.appointment.endDateTime);
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 10.0),
@@ -135,7 +144,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                   BetterText(text: widget.appointment.clientName, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
                   const SizedBox(height: 2.0),
                   BetterText(
-                    text: "${getWeekDay(truncate: true, dateTime: dt)}, ${dt.day} ${getMonth(truncate: true, dateTime: dt)} · ${widget.appointment.description} · ${widget.appointment.duration.inMinutes} min",
+                    text: "${getWeekDay(truncate: true, dateTime: dt)}, ${dt.day} ${getMonth(truncate: true, dateTime: dt)} · ${currentAccount.translateAppointmentType(widget.appointment.description)} · ${widget.appointment.formattedDuration}",
                     size: 12.0,
                     colour: currentAccount.palette.textSecondary,
                   ),
@@ -148,7 +157,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   BetterText(
-                    text: widget.appointment.status,
+                    text: currentAccount.translateStatus(widget.appointment.status),
                     size: 13.0,
                     weight: 600,
                     colour: widget.statusColor ?? currentAccount.palette.textPrimary,
@@ -168,6 +177,166 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
+  void _showSendAnnouncementDialog(BuildContext context) {
+    final titleController = TextEditingController();
+    final messageController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: currentAccount.palette.background,
+        title: BetterText(
+          text: currentAccount.t('send_announcement'),
+          weight: 600,
+          size: 18.0,
+          colour: currentAccount.palette.textPrimary,
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: titleController,
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(
+                labelText: currentAccount.t('announcement_title'),
+              ),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: messageController,
+              minLines: 2,
+              maxLines: 4,
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(
+                labelText: currentAccount.t('announcement_message'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+          ),
+          TextButton(
+            onPressed: () async {
+              final title = titleController.text.trim();
+              final msg = messageController.text.trim();
+              if (title.isEmpty || msg.isEmpty) return;
+              Navigator.pop(ctx);
+              await FirestoreService.sendClinicAnnouncement(
+                title: title,
+                description: msg,
+              );
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(currentAccount.t('announcement_sent'))),
+              );
+            },
+            child: BetterText(text: currentAccount.t('send'), colour: currentAccount.palette.primary, weight: 600),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showMedicationReminderDialog(BuildContext context) {
+    final instructionsController = TextEditingController();
+    UserProfile? selectedProfile;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StreamBuilder<List<UserProfile>>(
+        stream: FirestoreService.streamAllProfilesForStaff(),
+        builder: (context, snapshot) {
+          final profiles = (snapshot.data != null && snapshot.data!.isNotEmpty)
+              ? snapshot.data!
+              : currentAccount.profiles;
+          selectedProfile ??= profiles.isNotEmpty ? profiles.first : null;
+
+          return StatefulBuilder(
+            builder: (context, setDialogState) => AlertDialog(
+              backgroundColor: currentAccount.palette.background,
+              title: BetterText(
+                text: currentAccount.t('add_medication_reminder'),
+                weight: 600,
+                size: 18.0,
+                colour: currentAccount.palette.textPrimary,
+              ),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  BetterText(
+                    text: currentAccount.t('medication_reminder_patient'),
+                    size: 13.0,
+                    weight: 600,
+                    colour: currentAccount.palette.textPrimary,
+                  ),
+                  DropdownButton<UserProfile>(
+                    value: selectedProfile != null && profiles.any((p) => p.id == selectedProfile!.id)
+                        ? profiles.firstWhere((p) => p.id == selectedProfile!.id)
+                        : (profiles.isNotEmpty ? profiles.first : null),
+                    dropdownColor: currentAccount.palette.background,
+                    isExpanded: true,
+                    items: profiles
+                        .map((p) => DropdownMenuItem(
+                              value: p,
+                              child: BetterText(text: p.name, colour: currentAccount.palette.textPrimary),
+                            ))
+                        .toList(),
+                    onChanged: (val) {
+                      if (val != null) {
+                        setDialogState(() {
+                          selectedProfile = val;
+                        });
+                      }
+                    },
+                  ),
+                  const SizedBox(height: 12.0),
+                  TextField(
+                    controller: instructionsController,
+                    minLines: 2,
+                    maxLines: 4,
+                    style: TextStyle(color: currentAccount.palette.textPrimary),
+                    decoration: themedInputDecoration(
+                      labelText: currentAccount.t('medication_reminder_instructions'),
+                      hintText: currentAccount.t('medication_reminder_hint'),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    final instructions = instructionsController.text.trim();
+                    if (instructions.isEmpty || selectedProfile == null) return;
+                    final target = selectedProfile!;
+                    Navigator.pop(ctx);
+                    await FirestoreService.sendMedicationReminder(
+                      accountId: target.accountId,
+                      patientName: target.name,
+                      instructions: instructions,
+                    );
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text(currentAccount.t('medication_reminder_sent'))),
+                    );
+                  },
+                  child: BetterText(text: currentAccount.t('send'), colour: currentAccount.palette.primary, weight: 600),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = DateTime.now();
@@ -180,7 +349,19 @@ class HomePage extends StatelessWidget {
         leadingWidth: 56,
         leading: const HelpMenuButton(),
         title: BetterText(text: currentAccount.t('home'), size: 24.0, colour: currentAccount.palette.textPrimary),
-        actions: const [Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton())],
+        actions: [
+          IconButton(
+            icon: Icon(Icons.medication_outlined, color: currentAccount.palette.textPrimary),
+            tooltip: currentAccount.t('add_medication_reminder'),
+            onPressed: () => _showMedicationReminderDialog(context),
+          ),
+          IconButton(
+            icon: Icon(Icons.campaign_outlined, color: currentAccount.palette.textPrimary),
+            tooltip: currentAccount.t('send_announcement'),
+            onPressed: () => _showSendAnnouncementDialog(context),
+          ),
+          const Padding(padding: EdgeInsets.only(right: 12.0), child: ProfileIconButton()),
+        ],
       ),
       body: StreamBuilder<List<Appointment>>(
         stream: FirestoreService.streamAllAppointments(),
@@ -219,7 +400,7 @@ class HomePage extends StatelessWidget {
                       ),
                       const SizedBox(height: 2.0),
                       BetterText(
-                        text: "${allAppointments.length} bookings · Updated ${getTime()}",
+                        text: "${currentAccount.t('bookings_count', replacements: ['${allAppointments.length}'])} · ${currentAccount.t('updated_at', replacements: [getTime()])}",
                         size: 12.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
@@ -343,7 +524,7 @@ class HomePage extends StatelessWidget {
                         colour: currentAccount.palette.textPrimary,
                       ),
                       BetterText(
-                        text: "${upNext.length} bookings",
+                        text: currentAccount.t('bookings_count', replacements: ['${upNext.length}']),
                         size: 12.0,
                         colour: currentAccount.palette.textSecondary,
                       ),

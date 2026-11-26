@@ -150,14 +150,14 @@ class _ProfilesPageState extends State<ProfilesPage> {
     final newProfile = UserProfile(
       id: newId,
       accountId: currentAccount.id,
-      name: 'New Member',
+      name: currentAccount.t('new_member'),
       clientId: newId,
       dob: DateTime(2000, 1, 1),
       phone: '613-555-0100',
       primaryPhone: currentAccount.primaryPhone,
       isAccountHolder: false,
       upcomingBooking: currentAccount.t('no_upcoming_booking'),
-      bookingSubInfo: 'Newly added profile',
+      bookingSubInfo: currentAccount.t('newly_added_profile'),
     );
     await FirestoreService.saveProfile(currentAccount.id, newProfile);
   }
@@ -214,17 +214,20 @@ class _ProfilesPageState extends State<ProfilesPage> {
           children: [
             TextField(
               controller: nameController,
-              decoration: InputDecoration(labelText: currentAccount.t('full_name_min')),
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('full_name_min')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: phoneController,
-              decoration: InputDecoration(labelText: currentAccount.t('secondary_phone')),
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('secondary_phone')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: dobController,
-              decoration: InputDecoration(labelText: currentAccount.t('dob_format')),
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('dob_format')),
             ),
           ],
         ),
@@ -349,7 +352,7 @@ class _ProfilesPageState extends State<ProfilesPage> {
                         colour: currentAccount.palette.textPrimary,
                       ),
                       BetterText(
-                        text: "${profiles.length} members",
+                        text: "${profiles.length} ${currentAccount.t('members')}",
                         size: 12.0,
                         colour: currentAccount.palette.textSecondary,
                       ),

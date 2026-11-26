@@ -36,6 +36,13 @@ class _SettingsPageState extends State<SettingsPage> {
     FirestoreService.saveAccount(currentAccount);
   }
 
+  void _switchTimeFormat() {
+    setState(() {
+      currentAccount.toggleTimeFormat();
+    });
+    FirestoreService.saveAccount(currentAccount);
+  }
+
   void _manageContactDetails() {
     final emailController = TextEditingController(text: currentAccount.primaryEmail);
     final phoneController = TextEditingController(text: currentAccount.primaryPhone);
@@ -50,12 +57,14 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             TextField(
               controller: emailController,
-              decoration: InputDecoration(labelText: currentAccount.t('primary_email')),
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('primary_email')),
             ),
             const SizedBox(height: 12.0),
             TextField(
               controller: phoneController,
-              decoration: InputDecoration(labelText: currentAccount.t('primary_phone')),
+              style: TextStyle(color: currentAccount.palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('primary_phone')),
             ),
           ],
         ),
@@ -114,7 +123,6 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
-    setState(() {});
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
       appBar: AppBar(
@@ -128,162 +136,170 @@ class _SettingsPageState extends State<SettingsPage> {
       body: GestureDetector(
         onHorizontalDragEnd: (details) => navigateBySwipe(context, 'settings', details),
         child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            SettingsSectionHeader(title: currentAccount.t('your_account')),
-            const SizedBox(height: 4.0),
-            BetterText(
-              text:
-                  "${currentAccount.name} · ${currentAccount.profiles.length} registered family members",
-              size: 13.0,
-              colour: currentAccount.palette.textSecondary,
-            ),
-            const SizedBox(height: 12.0),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: _switchRole,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12.0),
-                  side: BorderSide(color: currentAccount.palette.primary, width: 1.5),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              SettingsSectionHeader(title: currentAccount.t('your_account')),
+              const SizedBox(height: 4.0),
+              BetterText(
+                text: currentAccount.t(
+                  'registered_members_summary',
+                  replacements: [currentAccount.name, "${currentAccount.profiles.length}"],
+                ),
+                size: 13.0,
+                colour: currentAccount.palette.textSecondary,
+              ),
+              const SizedBox(height: 12.0),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _switchRole,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 12.0),
+                    side: BorderSide(color: currentAccount.palette.primary, width: 1.5),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10.0),
+                    ),
+                  ),
+                  icon: Icon(Icons.swap_horiz, color: currentAccount.palette.primary),
+                  label: BetterText(
+                    text: currentAccount.t('switch_to_staff'),
+                    colour: currentAccount.palette.primary,
+                    weight: 600,
+                    size: 14.0,
                   ),
                 ),
-                icon: Icon(Icons.swap_horiz, color: currentAccount.palette.primary),
-                label: BetterText(
-                  text: currentAccount.t('switch_to_staff'),
-                  colour: currentAccount.palette.primary,
-                  weight: 600,
-                  size: 14.0,
-                ),
               ),
-            ),
-            const SizedBox(height: 24.0),
-            SettingsSectionHeader(title: currentAccount.t('appointment_preferences')),
-            const SizedBox(height: 8.0),
-            SettingsTile(
-              title: currentAccount.t('email_reminders'),
-              trailingText: currentAccount.emailReminders ? "On" : "Off",
-              onTap: () {
-                setState(() {
-                  currentAccount.emailReminders =
-                      !currentAccount.emailReminders;
-                });
-                FirestoreService.saveAccount(currentAccount);
-              },
-            ),
-            SettingsTile(
-              title: currentAccount.t('sms_reminders'),
-              trailingText: currentAccount.smsReminders ? "On" : "Off",
-              onTap: () {
-                setState(() {
-                  currentAccount.smsReminders = !currentAccount.smsReminders;
-                });
-                FirestoreService.saveAccount(currentAccount);
-              },
-            ),
-            SettingsTile(
-              title: currentAccount.t('virtual_check_in'),
-              trailingText: currentAccount.virtualCheckInEnabled
-                  ? "Enabled"
-                  : "Disabled",
-              onTap: () {
-                setState(() {
-                  currentAccount.virtualCheckInEnabled =
-                      !currentAccount.virtualCheckInEnabled;
-                });
-                FirestoreService.saveAccount(currentAccount);
-              },
-            ),
-            const SizedBox(height: 16.0),
-            SettingsSectionHeader(title: currentAccount.t('account_type')),
-            const SizedBox(height: 8.0),
-            SettingsTile(
-              title: currentAccount.t('family_profiles'),
-              trailingText: "${currentAccount.profiles.length} members",
-              onTap: () {},
-            ),
-            SettingsTile(
-              title: currentAccount.t('contact_details'),
-              trailingText: currentAccount.t('manage'),
-              onTap: _manageContactDetails,
-            ),
-            SettingsTile(
-              title: currentAccount.t('privacy'),
-              trailingText: currentAccount.privacyStatusText,
-              onTap: _reviewPrivacy,
-            ),
-            const SizedBox(height: 16.0),
-            SettingsSectionHeader(title: currentAccount.t('language')),
-            const SizedBox(height: 8.0),
-            SettingsTile(
-              title: currentAccount.t('language'),
-              trailingText: currentAccount.language == AppLanguage.english ? 'English' : 'Français',
-              onTap: _switchLanguage,
-            ),
-            const SizedBox(height: 20.0),
-            SettingsSectionHeader(
-              title: currentAccount.t('colour_theme'),
-              subtitle: currentAccount.t('theme_subtitle'),
-            ),
-            const SizedBox(height: 12.0),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                ThemeCard(
-                  title: currentAccount.t('theme_coastal'),
-                  status: currentAccount.theme == "Coastal"
-                      ? "Selected"
-                      : "Choose",
-                  isSelected: currentAccount.theme == "Coastal",
-                  primaryColor: const Color.fromARGB(255, 16, 108, 103),
-                  secondaryColor: const Color.fromARGB(255, 230, 242, 238),
-                  onTap: () {
-                    setState(() {
-                      currentAccount.theme = "Coastal";
-                    });
-                    FirestoreService.saveAccount(currentAccount);
-                  },
-                ),
-                ThemeCard(
-                  title: currentAccount.t('theme_dark'),
-                  status: currentAccount.theme == "Dark"
-                      ? "Selected"
-                      : "Choose",
-                  isSelected: currentAccount.theme == "Dark",
-                  primaryColor: const Color.fromARGB(255, 30, 144, 255),
-                  secondaryColor: const Color.fromARGB(255, 50, 50, 50),
-                  onTap: () {
-                    setState(() {
-                      currentAccount.theme = "Dark";
-                    });
-                    FirestoreService.saveAccount(currentAccount);
-                  },
-                ),
-                ThemeCard(
-                  title: currentAccount.t('theme_clay'),
-                  status: currentAccount.theme == "Clay"
-                      ? "Selected"
-                      : "Choose",
-                  isSelected: currentAccount.theme == "Clay",
-                  primaryColor: const Color.fromARGB(255, 160, 78, 57),
-                  secondaryColor: const Color.fromARGB(255, 245, 230, 225),
-                  onTap: () {
-                    setState(() {
-                      currentAccount.theme = "Clay";
-                    });
-                    FirestoreService.saveAccount(currentAccount);
-                  },
-                ),
-              ],
-            ),
-            const SizedBox(height: 24.0),
-          ],
+              const SizedBox(height: 24.0),
+              SettingsSectionHeader(title: currentAccount.t('appointment_preferences')),
+              const SizedBox(height: 8.0),
+              SettingsTile(
+                title: currentAccount.t('email_reminders'),
+                trailingText: currentAccount.emailReminders ? currentAccount.t('on') : currentAccount.t('off'),
+                onTap: () {
+                  setState(() {
+                    currentAccount.emailReminders = !currentAccount.emailReminders;
+                  });
+                  FirestoreService.saveAccount(currentAccount);
+                },
+              ),
+              SettingsTile(
+                title: currentAccount.t('sms_reminders'),
+                trailingText: currentAccount.smsReminders ? currentAccount.t('on') : currentAccount.t('off'),
+                onTap: () {
+                  setState(() {
+                    currentAccount.smsReminders = !currentAccount.smsReminders;
+                  });
+                  FirestoreService.saveAccount(currentAccount);
+                },
+              ),
+              SettingsTile(
+                title: currentAccount.t('virtual_check_in'),
+                trailingText: currentAccount.virtualCheckInEnabled
+                    ? currentAccount.t('enabled')
+                    : currentAccount.t('disabled'),
+                onTap: () {
+                  setState(() {
+                    currentAccount.virtualCheckInEnabled = !currentAccount.virtualCheckInEnabled;
+                  });
+                  FirestoreService.saveAccount(currentAccount);
+                },
+              ),
+              SettingsTile(
+                title: currentAccount.t('time_format'),
+                trailingText: currentAccount.use24HourTime
+                    ? currentAccount.t('time_24h')
+                    : currentAccount.t('time_12h'),
+                onTap: _switchTimeFormat,
+              ),
+              const SizedBox(height: 16.0),
+              SettingsSectionHeader(title: currentAccount.t('account_type')),
+              const SizedBox(height: 8.0),
+              SettingsTile(
+                title: currentAccount.t('family_profiles'),
+                trailingText: "${currentAccount.profiles.length} ${currentAccount.t('members')}",
+                onTap: () {},
+              ),
+              SettingsTile(
+                title: currentAccount.t('contact_details'),
+                trailingText: currentAccount.t('manage'),
+                onTap: _manageContactDetails,
+              ),
+              SettingsTile(
+                title: currentAccount.t('privacy'),
+                trailingText: currentAccount.t('review'),
+                onTap: _reviewPrivacy,
+              ),
+              const SizedBox(height: 16.0),
+              SettingsSectionHeader(title: currentAccount.t('language')),
+              const SizedBox(height: 8.0),
+              SettingsTile(
+                title: currentAccount.t('language'),
+                trailingText: currentAccount.language == AppLanguage.english ? 'English' : 'Français',
+                onTap: _switchLanguage,
+              ),
+              const SizedBox(height: 20.0),
+              SettingsSectionHeader(
+                title: currentAccount.t('colour_theme'),
+                subtitle: currentAccount.t('theme_subtitle'),
+              ),
+              const SizedBox(height: 12.0),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  ThemeCard(
+                    title: currentAccount.t('theme_coastal'),
+                    status: currentAccount.theme == "Coastal"
+                        ? currentAccount.t('selected')
+                        : currentAccount.t('choose'),
+                    isSelected: currentAccount.theme == "Coastal",
+                    primaryColor: const Color.fromARGB(255, 16, 108, 103),
+                    secondaryColor: const Color.fromARGB(255, 230, 242, 238),
+                    onTap: () {
+                      setState(() {
+                        currentAccount.theme = "Coastal";
+                      });
+                      FirestoreService.saveAccount(currentAccount);
+                    },
+                  ),
+                  ThemeCard(
+                    title: currentAccount.t('theme_dark'),
+                    status: currentAccount.theme == "Dark"
+                        ? currentAccount.t('selected')
+                        : currentAccount.t('choose'),
+                    isSelected: currentAccount.theme == "Dark",
+                    primaryColor: const Color.fromARGB(255, 30, 144, 255),
+                    secondaryColor: const Color.fromARGB(255, 50, 50, 50),
+                    onTap: () {
+                      setState(() {
+                        currentAccount.theme = "Dark";
+                      });
+                      FirestoreService.saveAccount(currentAccount);
+                    },
+                  ),
+                  ThemeCard(
+                    title: currentAccount.t('theme_clay'),
+                    status: currentAccount.theme == "Clay"
+                        ? currentAccount.t('selected')
+                        : currentAccount.t('choose'),
+                    isSelected: currentAccount.theme == "Clay",
+                    primaryColor: const Color.fromARGB(255, 160, 78, 57),
+                    secondaryColor: const Color.fromARGB(255, 245, 230, 225),
+                    onTap: () {
+                      setState(() {
+                        currentAccount.theme = "Clay";
+                      });
+                      FirestoreService.saveAccount(currentAccount);
+                    },
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24.0),
+            ],
+          ),
         ),
-      )),
+      ),
       bottomNavigationBar: const NavigationFooter(currentPage: 'settings'),
     );
   }

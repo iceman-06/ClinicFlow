@@ -11,11 +11,29 @@ class FirestoreService {
   static CollectionReference<Map<String, dynamic>> profilesRef(String accountId) =>
       accountsRef.doc(accountId).collection('profiles');
 
+  static CollectionReference<Map<String, dynamic>> notificationsRef(String accountId) =>
+      accountsRef.doc(accountId).collection('notifications');
+
   static CollectionReference<Map<String, dynamic>> get appointmentsRef =>
       _db.collection('appointments');
 
   static CollectionReference<Map<String, dynamic>> get bookedSlotsRef =>
       _db.collection('booked_slots');
+
+  static CollectionReference<Map<String, dynamic>> get waitlistRef =>
+      _db.collection('waitlist');
+
+  static CollectionReference<Map<String, dynamic>> get openingsRef =>
+      _db.collection('openings');
+
+  static String _formatShortDateTime(DateTime dt) {
+    final hh = dt.hour.toString().padLeft(2, '0');
+    final mm = dt.minute.toString().padLeft(2, '0');
+    final timeStr = currentAccount.use24HourTime
+        ? '$hh:$mm'
+        : '${dt.hour % 12 == 0 ? 12 : dt.hour % 12}:$mm ${dt.hour >= 12 ? 'PM' : 'AM'}';
+    return '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} · $timeStr';
+  }
 
   /// Loads an existing account from `accounts/{uid}` and its `profiles` subcollection,
   /// or creates them in Firestore if this is the user's first login.
@@ -24,6 +42,7 @@ class FirestoreService {
     String? fallbackName,
     String? fallbackEmail,
     bool isDefaultDemo = false,
+    bool seedSampleData = false,
   }) async {
     final selectedLanguage = currentAccount.language;
     final accountDocRef = accountsRef.doc(user.uid);
@@ -44,7 +63,8 @@ class FirestoreService {
           await profilesRef(user.uid).doc(profile.id).set(profile.toMap());
         }
 
-        await _seedDefaultAppointments(user.uid);
+        await _seedDefaultAppointments(user.uid, profileId: 'CL-1042', clientName: 'Jamie Chen');
+        await _seedDefaultNotifications(user.uid);
         return currentAccount;
       }
 
@@ -84,6 +104,10 @@ class FirestoreService {
       await profilesRef(user.uid).doc(holderProfile.id).set(holderProfile.toMap());
 
       currentAccount = newAccount;
+      if (seedSampleData) {
+        await _seedDefaultAppointments(user.uid, profileId: holderProfileId, clientName: resolvedName);
+      }
+      await _seedDefaultNotifications(user.uid);
       return currentAccount;
     }
 
@@ -125,7 +149,23 @@ class FirestoreService {
     return currentAccount;
   }
 
-  static Future<void> _seedDefaultAppointments(String accountId) async {
+  static Future<void> _seedDefaultNotifications(String accountId) async {
+    final existing = await notificationsRef(accountId).limit(1).get();
+    if (existing.docs.isNotEmpty) return;
+
+    await addNotification(
+      accountId,
+      title: currentAccount.t('medication_reminder'),
+      description: currentAccount.t('remember_medication'),
+      type: 'reminder',
+    );
+  }
+
+  static Future<void> _seedDefaultAppointments(
+    String accountId, {
+    required String profileId,
+    required String clientName,
+  }) async {
     final existing = await appointmentsRef.where('accountId', isEqualTo: accountId).limit(1).get();
     if (existing.docs.isNotEmpty) return;
 
@@ -135,31 +175,23 @@ class FirestoreService {
       Appointment(
         id: 'appt_${accountId}_1',
         accountId: accountId,
-        profileId: 'CL-1042',
-        clientName: 'Jamie Chen',
-        dateTime: todayBase.add(const Duration(days: 1, hours: 14, minutes: 30)),
+        profileId: profileId,
+        clientName: clientName,
+        dateTime: todayBase.add(const Duration(days: 1, hours: 14)),
         duration: const Duration(minutes: 30),
         description: 'Follow-up',
+        reason: 'Post-visit check',
         status: 'Upcoming',
       ),
       Appointment(
         id: 'appt_${accountId}_2',
         accountId: accountId,
-        profileId: 'CL-1253',
-        clientName: 'Daniel Chen',
-        dateTime: todayBase.add(const Duration(days: 2, hours: 10, minutes: 0)),
+        profileId: profileId,
+        clientName: clientName,
+        dateTime: todayBase.add(const Duration(days: 3, hours: 10)),
         duration: const Duration(minutes: 45),
         description: 'Initial consultation',
-        status: 'Confirmed',
-      ),
-      Appointment(
-        id: 'appt_${accountId}_3',
-        accountId: accountId,
-        profileId: 'CL-1042',
-        clientName: 'Jamie Chen',
-        dateTime: todayBase.add(const Duration(days: 14, hours: 11, minutes: 0)),
-        duration: const Duration(minutes: 30),
-        description: 'Specialist consultation',
+        reason: 'General wellness assessment',
         status: 'Confirmed',
       ),
     ];
@@ -169,7 +201,7 @@ class FirestoreService {
       await bookedSlotsRef.doc(appt.id).set({
         'appointmentId': appt.id,
         'dateTime': appt.dateTime.toIso8601String(),
-        'duration': appt.duration.inMinutes,
+        'duration': appt.duration.inMinutes > 0 ? appt.duration.inMinutes : 60,
       });
     }
   }
@@ -177,6 +209,125 @@ class FirestoreService {
   static Future<void> saveAccount(Account account) async {
     if (account.id.isEmpty) return;
     await accountsRef.doc(account.id).set(account.toMap(), SetOptions(merge: true));
+  }
+
+  // --- Notifications / Announcements ---
+
+  static Stream<List<Announcement>> streamNotifications(String accountId) {
+    if (accountId.isEmpty) return const Stream.empty();
+    return notificationsRef(accountId).snapshots().map((snap) {
+      final list = snap.docs
+          .map((d) => Announcement.fromMap(d.data(), docId: d.id))
+          .where((a) => a.isVisible)
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  static Future<void> addNotification(
+    String accountId, {
+    required String title,
+    required String description,
+    String type = 'info',
+  }) async {
+    if (accountId.isEmpty) return;
+    final docRef = notificationsRef(accountId).doc();
+    final announcement = Announcement(
+      id: docRef.id,
+      title: title,
+      description: description,
+      type: type,
+      isVisible: true,
+      createdAt: DateTime.now(),
+    );
+    await docRef.set(announcement.toMap());
+  }
+
+  static Future<void> dismissNotification(String accountId, String notificationId) async {
+    if (accountId.isEmpty || notificationId.isEmpty) return;
+    await notificationsRef(accountId).doc(notificationId).set({
+      'isVisible': false,
+    }, SetOptions(merge: true));
+  }
+
+  static Future<void> sendClinicAnnouncement({
+    required String title,
+    required String description,
+  }) async {
+    final accountsSnap = await accountsRef.get();
+    if (accountsSnap.docs.isEmpty && currentAccount.id.isNotEmpty) {
+      await addNotification(currentAccount.id, title: title, description: description, type: 'clinic');
+      return;
+    }
+    for (final doc in accountsSnap.docs) {
+      await addNotification(doc.id, title: title, description: description, type: 'clinic');
+    }
+  }
+
+  static Future<void> sendMedicationReminder({
+    required String accountId,
+    required String patientName,
+    required String instructions,
+  }) async {
+    final targetId = accountId.isNotEmpty ? accountId : currentAccount.id;
+    await addNotification(
+      targetId,
+      title: '${currentAccount.t('medication_reminder')} • $patientName',
+      description: instructions,
+      type: 'medication',
+    );
+  }
+
+  // --- Waitlist & Openings ---
+
+  static Stream<List<WaitlistEntry>> streamWaitlistForAccount(String accountId) {
+    if (accountId.isEmpty) return const Stream.empty();
+    return waitlistRef.where('accountId', isEqualTo: accountId).snapshots().map((snap) {
+      final list = snap.docs
+          .map((d) => WaitlistEntry.fromMap(d.data(), docId: d.id))
+          .toList();
+      list.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return list;
+    });
+  }
+
+  static Future<String> joinWaitlist(WaitlistEntry entry) async {
+    final docRef = waitlistRef.doc();
+    entry.id = docRef.id;
+    await docRef.set(entry.toMap());
+    await addNotification(
+      entry.accountId,
+      title: currentAccount.t('notif_waitlist_joined_title'),
+      description: currentAccount.t(
+        'notif_waitlist_joined_desc',
+        replacements: [entry.clientName, _formatShortDateTime(entry.preferredDateTime)],
+      ),
+      type: 'waitlist',
+    );
+    return docRef.id;
+  }
+
+  static Future<void> leaveWaitlist(String entryId) async {
+    if (entryId.isEmpty) return;
+    await waitlistRef.doc(entryId).delete();
+  }
+
+  static Stream<List<ClinicOpening>> streamOpenings() {
+    return openingsRef.snapshots().map((snap) {
+      final now = DateTime.now();
+      final list = snap.docs
+          .map((d) => ClinicOpening.fromMap(d.data(), docId: d.id))
+          .where((o) => o.dateTime.isAfter(now))
+          .toList();
+      list.sort((a, b) => a.dateTime.compareTo(b.dateTime));
+      return list;
+    });
+  }
+
+  static Future<void> claimOpening(String openingId) async {
+    if (openingId.isEmpty) return;
+    await openingsRef.doc(openingId).delete();
   }
 
   // --- Profiles (subcollection under accounts/{accountId}/profiles) ---
@@ -226,7 +377,6 @@ class FirestoreService {
 
   // --- Appointments (top-level collection, separate from accounts) ---
 
-  /// Client view: only appointments booked by [accountId].
   static Stream<List<Appointment>> streamAccountAppointments(String accountId) {
     return appointmentsRef
         .where('accountId', isEqualTo: accountId)
@@ -240,7 +390,6 @@ class FirestoreService {
     });
   }
 
-  /// Staff view: all appointments across all accounts.
   static Stream<List<Appointment>> streamAllAppointments() {
     return appointmentsRef.snapshots().map((snap) {
       final list = snap.docs
@@ -251,7 +400,6 @@ class FirestoreService {
     });
   }
 
-  /// Public-to-signed-in-users taken time slots (no private patient details).
   static Stream<List<BookedSlot>> streamBookedSlots() {
     return bookedSlotsRef.snapshots().map((snap) {
       return snap.docs
@@ -269,12 +417,12 @@ class FirestoreService {
     await bookedSlotsRef.doc(docRef.id).set({
       'appointmentId': docRef.id,
       'dateTime': appointment.dateTime.toIso8601String(),
-      'duration': appointment.duration.inMinutes,
+      'duration': appointment.duration.inMinutes > 0 ? appointment.duration.inMinutes : 60,
     });
 
     if (appointment.accountId.isNotEmpty && appointment.profileId.isNotEmpty) {
       final dt = appointment.dateTime;
-      final end = dt.add(appointment.duration);
+      final end = appointment.endDateTime;
       final startStr = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
       final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
       const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -286,13 +434,38 @@ class FirestoreService {
         'upcomingBooking': summary,
         'bookingSubInfo': subInfo,
       }, SetOptions(merge: true));
+
+      await addNotification(
+        appointment.accountId,
+        title: currentAccount.t('notif_booked_title'),
+        description: currentAccount.t(
+          'notif_booked_desc',
+          replacements: [appointment.clientName, _formatShortDateTime(appointment.dateTime)],
+        ),
+        type: 'appointment',
+      );
     }
 
     return docRef.id;
   }
 
   static Future<void> updateAppointmentStatus(String appointmentId, String newStatus) async {
+    final docSnap = await appointmentsRef.doc(appointmentId).get();
     await appointmentsRef.doc(appointmentId).update({'status': newStatus});
+    if (docSnap.exists) {
+      final appt = Appointment.fromMap(docSnap.data()!, docId: docSnap.id);
+      if (appt.accountId.isNotEmpty) {
+        await addNotification(
+          appt.accountId,
+          title: currentAccount.t('notif_status_title'),
+          description: currentAccount.t(
+            'notif_status_desc',
+            replacements: [appt.clientName, currentAccount.translateStatus(newStatus)],
+          ),
+          type: 'appointment',
+        );
+      }
+    }
   }
 
   static Future<void> updateAppointmentDateTime(String appointmentId, DateTime newDateTime) async {
@@ -304,7 +477,55 @@ class FirestoreService {
   }
 
   static Future<void> cancelAppointment(String appointmentId) async {
+    final docSnap = await appointmentsRef.doc(appointmentId).get();
+    Appointment? cancelledAppt;
+    if (docSnap.exists) {
+      cancelledAppt = Appointment.fromMap(docSnap.data()!, docId: docSnap.id);
+    }
+
     await appointmentsRef.doc(appointmentId).delete();
     await bookedSlotsRef.doc(appointmentId).delete();
+
+    if (cancelledAppt != null) {
+      if (cancelledAppt.accountId.isNotEmpty) {
+        await addNotification(
+          cancelledAppt.accountId,
+          title: currentAccount.t('notif_cancelled_title'),
+          description: currentAccount.t(
+            'notif_cancelled_desc',
+            replacements: [cancelledAppt.clientName, _formatShortDateTime(cancelledAppt.dateTime)],
+          ),
+          type: 'appointment',
+        );
+      }
+
+      if (cancelledAppt.dateTime.isAfter(DateTime.now())) {
+        final openingRef = openingsRef.doc();
+        final opening = ClinicOpening(
+          id: openingRef.id,
+          dateTime: cancelledAppt.dateTime,
+          durationMinutes: cancelledAppt.duration.inMinutes > 0 ? cancelledAppt.duration.inMinutes : 60,
+        );
+        await openingRef.set(opening.toMap());
+
+        final waitlistSnap = await waitlistRef.get();
+        final notifiedAccounts = <String>{};
+        for (final wDoc in waitlistSnap.docs) {
+          final entry = WaitlistEntry.fromMap(wDoc.data(), docId: wDoc.id);
+          if (entry.accountId.isNotEmpty && !notifiedAccounts.contains(entry.accountId)) {
+            notifiedAccounts.add(entry.accountId);
+            await addNotification(
+              entry.accountId,
+              title: currentAccount.t('notif_waitlist_open_title'),
+              description: currentAccount.t(
+                'notif_waitlist_open_desc',
+                replacements: [_formatShortDateTime(cancelledAppt.dateTime)],
+              ),
+              type: 'waitlist',
+            );
+          }
+        }
+      }
+    }
   }
 }

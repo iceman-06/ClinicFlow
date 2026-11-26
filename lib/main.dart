@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:material_ui/material_ui.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,6 +6,7 @@ import 'package:clinicflow/firebase_options.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
 
@@ -38,8 +40,20 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
+  // Set to true to enable the Google Sign-In button (logs into the default demo account).
+  static const bool enableGoogleSignIn = true;
+
   static const String _defaultDemoEmail = 'jamie.chen@clinicflow.app';
   static const String _defaultDemoPassword = 'ClinicFlowDemo2026!';
+
+  static const List<String> _firstNames = [
+    'Alex', 'Maya', 'Liam', 'Chloe', 'Noah', 'Sophie',
+    'Ethan', 'Claire', 'Lucas', 'Emma', 'Owen', 'Hannah',
+  ];
+  static const List<String> _lastNames = [
+    'Tremblay', 'Patel', 'Gagnon', 'Martin', 'Roy', 'Lee',
+    'Bouchard', 'Wilson', 'Cote', 'Anderson', 'Nguyen', 'Clark',
+  ];
 
   bool _isLogin = true;
   bool _isLoading = false;
@@ -182,8 +196,75 @@ class _AuthPageState extends State<AuthPage> {
     }
   }
 
-  Future<void> _loginAsDefault() async {
+  /// Creates and signs into a random realistic account.
+  Future<void> _loginAsRandomDefault() async {
     if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final rng = Random.secure();
+      final first = _firstNames[rng.nextInt(_firstNames.length)];
+      final last = _lastNames[rng.nextInt(_lastNames.length)];
+      final fullName = '$first $last';
+      final suffix = 100 + rng.nextInt(9000);
+      final randomEmail = '${first.toLowerCase()}.${last.toLowerCase()}$suffix@clinicflow.app';
+      const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#';
+      final randomPassword = List.generate(14, (_) => chars[rng.nextInt(chars.length)]).join();
+
+      final credential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: randomEmail,
+        password: randomPassword,
+      );
+      await credential.user?.updateDisplayName(fullName);
+      await credential.user?.reload();
+
+      final user = FirebaseAuth.instance.currentUser ?? credential.user;
+      if (user != null) {
+        await FirestoreService.loadOrCreateAccount(
+          user,
+          fallbackName: fullName,
+          fallbackEmail: randomEmail,
+          seedSampleData: true,
+        );
+      }
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => currentAccount.isStaff ? const staff_home.HomePage() : const client_home.HomePage(),
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(_mapAuthError(e))),
+      );
+    } on FirebaseException catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Firestore error (${e.code}): ${e.message ?? ''}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  /// Signs into the fixed default demo account (used when [enableGoogleSignIn] is true).
+  Future<void> _loginWithGoogleDemo() async {
+    if (!enableGoogleSignIn || _isLoading) return;
 
     setState(() {
       _isLoading = true;
@@ -283,9 +364,9 @@ class _AuthPageState extends State<AuthPage> {
               if (!_isLogin) ...[
                 TextField(
                   controller: _nameController,
-                  decoration: InputDecoration(
+                  style: TextStyle(color: palette.textPrimary),
+                  decoration: themedInputDecoration(
                     labelText: currentAccount.t('name'),
-                    border: const OutlineInputBorder(),
                   ),
                 ),
                 const SizedBox(height: 16),
@@ -294,18 +375,18 @@ class _AuthPageState extends State<AuthPage> {
                 controller: _emailController,
                 keyboardType: TextInputType.emailAddress,
                 autocorrect: false,
-                decoration: InputDecoration(
+                style: TextStyle(color: palette.textPrimary),
+                decoration: themedInputDecoration(
                   labelText: currentAccount.t('email'),
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: _passwordController,
                 obscureText: true,
-                decoration: InputDecoration(
+                style: TextStyle(color: palette.textPrimary),
+                decoration: themedInputDecoration(
                   labelText: currentAccount.t('password'),
-                  border: const OutlineInputBorder(),
                 ),
               ),
               const SizedBox(height: 24),
@@ -327,12 +408,29 @@ class _AuthPageState extends State<AuthPage> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton(
-                  onPressed: _isLoading ? null : _loginAsDefault,
+                  onPressed: _isLoading ? null : _loginAsRandomDefault,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: palette.textSecondary),
                   ),
                   child: Text(
                     currentAccount.t('default_account'),
+                    style: TextStyle(color: palette.textPrimary),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
+                  onPressed: _isLoading
+                      ? null
+                      : (enableGoogleSignIn ? _loginWithGoogleDemo : () {}),
+                  style: OutlinedButton.styleFrom(
+                    side: BorderSide(color: palette.textSecondary),
+                  ),
+                  icon: Icon(Icons.login, color: palette.textPrimary),
+                  label: Text(
+                    currentAccount.t('login_with_google'),
                     style: TextStyle(color: palette.textPrimary),
                   ),
                 ),
