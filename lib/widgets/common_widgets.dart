@@ -210,10 +210,12 @@ class NavigationFooter extends StatelessWidget {
                 : () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => isStaff
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => isStaff
                             ? const staff_home.HomePage()
                             : const client_home.HomePage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
                       ),
                     );
                   },
@@ -227,10 +229,12 @@ class NavigationFooter extends StatelessWidget {
                 : () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => isStaff
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => isStaff
                             ? const staff_calendar.CalendarPage()
                             : const client_calendar.CalendarPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
                       ),
                     );
                   },
@@ -244,10 +248,12 @@ class NavigationFooter extends StatelessWidget {
                 : () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => isStaff
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => isStaff
                             ? const staff_profiles.ProfilesPage()
                             : const client_profiles.ProfilesPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
                       ),
                     );
                   },
@@ -261,10 +267,12 @@ class NavigationFooter extends StatelessWidget {
                 : () {
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => isStaff
+                      PageRouteBuilder(
+                        pageBuilder: (_, __, ___) => isStaff
                             ? const staff_settings.SettingsPage()
                             : const client_settings.SettingsPage(),
+                        transitionDuration: Duration.zero,
+                        reverseTransitionDuration: Duration.zero,
                       ),
                     );
                   },
