@@ -134,7 +134,7 @@ class HelpMenuButton extends StatelessWidget {
     {
       'value': 'help',
       'label': 'help',
-      'url': 'https://sites.google.com/view/clinicflow-/home',
+      'url': 'https://caiot.co',
     },
     {
       'value': 'feedback',

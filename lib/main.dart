@@ -41,7 +41,7 @@ class AuthPage extends StatefulWidget {
 
 class _AuthPageState extends State<AuthPage> {
   // Set to true to enable the Google Sign-In button (logs into the default demo account).
-  static const bool enableGoogleSignIn = true;
+  static const bool enableGoogleSignIn = false;
 
   static const String _defaultDemoEmail = 'jamie.chen@clinicflow.app';
   static const String _defaultDemoPassword = 'ClinicFlowDemo2026!';
