@@ -81,7 +81,7 @@ class UserProfile {
 
   static void Function(UserProfile)? onCreated;
 
-  Map<String, dynamic> toMap() {
+ Map<String, dynamic> toMap() {
     return {
       'id': id,
       'accountId': accountId,
@@ -95,6 +95,7 @@ class UserProfile {
       'upcomingBooking': upcomingBooking,
       'bookingSubInfo': bookingSubInfo,
       'lastVisit': lastVisit,
+      'clinicIds': clinicIds,
     };
   }
 
@@ -112,6 +113,10 @@ class UserProfile {
       upcomingBooking: map['upcomingBooking'] ?? 'No upcoming booking',
       bookingSubInfo: map['bookingSubInfo'] ?? '',
       lastVisit: map['lastVisit'] ?? '',
+      clinicIds: (map['clinicIds'] as List<dynamic>?)
+              ?.map((e) => e.toString())
+              .toList() ??
+          [],
     );
   }
 

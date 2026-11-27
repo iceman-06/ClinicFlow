@@ -4,6 +4,7 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/clinic.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:clinicflow/services/firestore_service.dart';
 
 enum ClinicViewMode { mapAndList, fullList, mapOnly }
 
@@ -36,6 +37,10 @@ class _AddClinicPageState extends State<AddClinicPage> {
     final query = _searchController.text.trim().toLowerCase();
 
     final items = sampleClinics.where((clinic) {
+      if (currentAccount.activeProfile.hasClinic(clinic.id)) {
+        return false;
+      }
+
       final matchesQuery = query.isEmpty ||
           clinic.name.toLowerCase().contains(query) ||
           clinic.specialty.toLowerCase().contains(query) ||
@@ -116,102 +121,127 @@ class _AddClinicPageState extends State<AddClinicPage> {
   Widget _buildMapWidget(List<Clinic> clinics, {double? height}) {
     final palette = currentAccount.palette;
 
-    return SizedBox(
-      height: height,
-      child: Stack(
+    final mapWidget = RepaintBoundary(
+      child: FlutterMap(
+        mapController: _mapController,
+        options: MapOptions(
+          initialCenter: _searchArea.center,
+          initialZoom: 13.0,
+          minZoom: 10.5,
+          maxZoom: 16.0,
+          interactionOptions: const InteractionOptions(flags: InteractiveFlag.all),
+          onTap: (_, _) {
+            if (_selectedPreviewClinic != null) {
+              setState(() => _selectedPreviewClinic = null);
+            }
+          },
+        ),
         children: [
-          FlutterMap(
-            mapController: _mapController,
-            options: MapOptions(
-              initialCenter: _searchArea.center,
-              initialZoom: 13.0,
-              minZoom: 10.5,
-              maxZoom: 16.0,
-              onTap: (_, __) => setState(() => _selectedPreviewClinic = null),
+          TileLayer(
+            urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+            userAgentPackageName: 'com.example.clinicflow',
+          ),
+          CircleLayer(
+            circles: buildRadiusCircles(
+              center: _searchArea.center,
+              radiusKm: _searchArea.radiusKm,
+              palette: palette,
             ),
-            children: [
-              TileLayer(
-                urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                userAgentPackageName: 'com.example.clinicflow',
-              ),
-              CircleLayer(
-                circles: buildRadiusCircles(
-                  center: _searchArea.center,
-                  radiusKm: _searchArea.radiusKm,
-                  palette: palette,
+          ),
+          MarkerLayer(
+            markers: [
+              Marker(
+                point: _searchArea.center,
+                width: 34,
+                height: 34,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: palette.background,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: palette.primary, width: 3),
+                  ),
+                  child: Icon(Icons.my_location, size: 16, color: palette.primary),
                 ),
               ),
-              MarkerLayer(
-                markers: [
-                  Marker(
-                    point: _searchArea.center,
-                    width: 34,
-                    height: 34,
+              for (int i = 0; i < clinics.length; i++)
+                Marker(
+                  point: clinics[i].location,
+                  width: 34,
+                  height: 34,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _selectedPreviewClinic = clinics[i]),
                     child: Container(
+                      alignment: Alignment.center,
                       decoration: BoxDecoration(
-                        color: palette.background,
+                        color: _selectedPreviewClinic?.id == clinics[i].id
+                            ? palette.textPrimary
+                            : palette.primary,
                         shape: BoxShape.circle,
-                        border: Border.all(color: palette.primary, width: 3),
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: Icon(Icons.my_location, size: 16, color: palette.primary),
+                      child: BetterText(
+                        text: '${i + 1}',
+                        size: 12.0,
+                        weight: 700,
+                        colour: Colors.white,
+                      ),
                     ),
                   ),
-                  for (int i = 0; i < clinics.length; i++)
-                    Marker(
-                      point: clinics[i].location,
-                      width: 34,
-                      height: 34,
-                      child: GestureDetector(
-                        onTap: () => setState(() => _selectedPreviewClinic = clinics[i]),
-                        child: Container(
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: _selectedPreviewClinic?.id == clinics[i].id
-                                ? palette.textPrimary
-                                : palette.primary,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: BetterText(
-                            text: '${i + 1}',
-                            size: 12.0,
-                            weight: 700,
-                            colour: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ),
-                ],
-              ),
+                ),
             ],
           ),
-          if (_selectedPreviewClinic != null)
-            Positioned(
-              left: 12,
-              right: 12,
-              bottom: 12,
-              child: Material(
-                elevation: 3,
-                borderRadius: BorderRadius.circular(10),
-                color: palette.background,
-                child: ListTile(
-                  onTap: () => _openDetails(_selectedPreviewClinic!),
-                  title: BetterText(
-                    text: _selectedPreviewClinic!.name,
-                    weight: 600,
-                    size: 15.0,
-                    colour: palette.textPrimary,
-                  ),
-                  subtitle: BetterText(
-                    text:
-                        '${_selectedPreviewClinic!.specialty} · ${_selectedPreviewClinic!.distanceKmFrom(_searchArea.center).toStringAsFixed(1)} km · ★ ${_selectedPreviewClinic!.rating}',
-                    size: 12.0,
-                    colour: palette.textSecondary,
-                  ),
-                  trailing: Icon(Icons.chevron_right, color: palette.primary),
+        ],
+      ),
+    );
+
+    final previewCard = _selectedPreviewClinic == null
+        ? null
+        : Positioned(
+            left: 12,
+            right: 12,
+            bottom: 72,
+            child: Material(
+              elevation: 3,
+              borderRadius: BorderRadius.circular(10),
+              color: palette.background,
+              child: ListTile(
+                onTap: () => _openDetails(_selectedPreviewClinic!),
+                title: BetterText(
+                  text: _selectedPreviewClinic!.name,
+                  weight: 600,
+                  size: 15.0,
+                  colour: palette.textPrimary,
                 ),
+                subtitle: BetterText(
+                  text:
+                      '${_selectedPreviewClinic!.specialty} · ${_selectedPreviewClinic!.distanceKmFrom(_searchArea.center).toStringAsFixed(1)} km · ★ ${_selectedPreviewClinic!.rating}',
+                  size: 12.0,
+                  colour: palette.textSecondary,
+                ),
+                trailing: Icon(Icons.chevron_right, color: palette.primary),
               ),
             ),
+          );
+
+    if (height == null) {
+      return SizedBox.expand(
+        child: Stack(
+          children: [
+            Positioned.fill(child: mapWidget),
+            if (previewCard != null) previewCard,
+          ],
+        ),
+      );
+    }
+
+    return SizedBox(
+      height: height,
+      width: double.infinity,
+      child: Stack(
+        children: [
+          Positioned.fill(child: mapWidget),
+          if (previewCard != null) previewCard,
         ],
       ),
     );
@@ -220,7 +250,6 @@ class _AddClinicPageState extends State<AddClinicPage> {
   Widget _buildClinicRow(int index, Clinic clinic) {
     final palette = currentAccount.palette;
     final distKm = clinic.distanceKmFrom(_searchArea.center).toStringAsFixed(1);
-    final alreadyAdded = currentAccount.activeProfile.hasClinic(clinic.id);
 
     return Column(
       children: [
@@ -247,20 +276,6 @@ class _AddClinicPageState extends State<AddClinicPage> {
                   colour: palette.textPrimary,
                 ),
               ),
-              if (alreadyAdded)
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: palette.secondary,
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: BetterText(
-                    text: 'Added',
-                    size: 11.0,
-                    weight: 600,
-                    colour: palette.primary,
-                  ),
-                ),
             ],
           ),
           subtitle: Column(
@@ -935,19 +950,30 @@ class ClinicDetailsPage extends StatefulWidget {
 }
 
 class _ClinicDetailsPageState extends State<ClinicDetailsPage> {
-  void _addToSelectedProfile() {
+  Future<void> _addToSelectedProfile() async {
     final profile = currentAccount.activeProfile;
     if (!profile.hasClinic(widget.clinic.id)) {
-      setState(() {
-        profile.clinicIds.add(widget.clinic.id);
-      });
+      profile.clinicIds.add(widget.clinic.id);
+    }
+    for (final p in currentAccount.profiles) {
+      if (p.id == profile.id && !p.clinicIds.contains(widget.clinic.id)) {
+        p.clinicIds.add(widget.clinic.id);
+      }
     }
 
+    if (currentAccount.id.isNotEmpty) {
+      await FirestoreService.saveProfile(currentAccount.id, profile);
+    }
+
+    if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Added ${widget.clinic.name} to ${profile.name}'),
       ),
     );
+    Navigator.of(context)
+      ..pop()
+      ..pop(true);
   }
 
   @override

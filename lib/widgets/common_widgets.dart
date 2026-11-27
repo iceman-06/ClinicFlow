@@ -233,7 +233,7 @@ class NavigationFooter extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => isStaff
+                        pageBuilder: (_, _, _) => isStaff
                             ? const staff_home.HomePage()
                             : const client_home.HomePage(),
                         transitionDuration: Duration.zero,
@@ -252,7 +252,7 @@ class NavigationFooter extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => isStaff
+                        pageBuilder: (_, _, _) => isStaff
                             ? const staff_calendar.CalendarPage()
                             : const client_calendar.CalendarPage(),
                         transitionDuration: Duration.zero,
@@ -271,7 +271,7 @@ class NavigationFooter extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => isStaff
+                        pageBuilder: (_, _, _) => isStaff
                             ? const staff_profiles.ProfilesPage()
                             : const client_profiles.ProfilesPage(),
                         transitionDuration: Duration.zero,
@@ -290,7 +290,7 @@ class NavigationFooter extends StatelessWidget {
                     Navigator.pushReplacement(
                       context,
                       PageRouteBuilder(
-                        pageBuilder: (_, __, ___) => isStaff
+                        pageBuilder: (_, _, _) => isStaff
                             ? const staff_settings.SettingsPage()
                             : const client_settings.SettingsPage(),
                         transitionDuration: Duration.zero,

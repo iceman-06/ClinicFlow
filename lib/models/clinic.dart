@@ -1,5 +1,7 @@
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
+import 'package:material_ui/material_ui.dart';
+import 'package:clinicflow/models/palette.dart';
 
 class ClinicSearchArea {
   final String label;
@@ -166,16 +168,16 @@ Clinic(
 List<CircleMarker> buildRadiusCircles({
   required LatLng center,
   required double radiusKm,
-  required dynamic palette,
+  required ColorPalette palette,
 }) {
   return [
     CircleMarker(
       point: center,
       radius: radiusKm * 1000,
       useRadiusInMeter: true,
-      color: palette.primary.withAlpha(28),
-      borderColor: palette.primary,
-      borderStrokeWidth: 2.0,
+      color: Colors.blue.withAlpha(75),
+      borderColor: Colors.blue.withAlpha(210),
+      borderStrokeWidth: 2.5,
     ),
   ];
 }

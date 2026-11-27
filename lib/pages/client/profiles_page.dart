@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/models/clinic.dart';
+import 'package:clinicflow/pages/client/clinic_search_page.dart';
 
 class FamilyMemberCard extends StatelessWidget {
   final UserProfile profile;
@@ -200,90 +202,14 @@ class _ProfilesPageState extends State<ProfilesPage> {
   }
 
   void _manageProfile(UserProfile profile) {
-    final nameController = TextEditingController(text: profile.name);
-    final phoneController = TextEditingController(text: profile.phone);
-    final dobController = TextEditingController(text: "${profile.dob.year}-${profile.dob.month.toString().padLeft(2, '0')}-${profile.dob.day.toString().padLeft(2, '0')}");
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: currentAccount.palette.background,
-        title: BetterText(text: "${currentAccount.t('manage')} ${profile.name}", weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              style: TextStyle(color: currentAccount.palette.textPrimary),
-              decoration: themedInputDecoration(labelText: currentAccount.t('full_name_min')),
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: phoneController,
-              style: TextStyle(color: currentAccount.palette.textPrimary),
-              decoration: themedInputDecoration(labelText: currentAccount.t('secondary_phone')),
-            ),
-            const SizedBox(height: 12.0),
-            TextField(
-              controller: dobController,
-              style: TextStyle(color: currentAccount.palette.textPrimary),
-              decoration: themedInputDecoration(labelText: currentAccount.t('dob_format')),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
-          ),
-          TextButton(
-            onPressed: () async {
-              final nameParts = nameController.text.trim().split(RegExp(r'\s+'));
-              if (nameParts.length < 2) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(currentAccount.t('error_name_two_words'))),
-                );
-                return;
-              }
-
-              final cleanPhone = phoneController.text.replaceAll(RegExp(r'\D'), '');
-              if (cleanPhone.length != 10) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(currentAccount.t('error_phone_ten'))),
-                );
-                return;
-              }
-
-              DateTime? parsedDate;
-              try {
-                parsedDate = DateTime.parse(dobController.text);
-              } catch (_) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(currentAccount.t('error_dob_format'))),
-                );
-                return;
-              }
-
-              profile.name = nameController.text.trim();
-              profile.phone = "${cleanPhone.substring(0,3)}-${cleanPhone.substring(3,6)}-${cleanPhone.substring(6)}";
-              profile.dob = parsedDate;
-
-              Navigator.pop(ctx);
-              await FirestoreService.saveProfile(currentAccount.id, profile);
-              if (profile.isAccountHolder) {
-                currentAccount.name = profile.name;
-                await FirestoreService.saveAccount(currentAccount);
-              }
-              if (!mounted) return;
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(currentAccount.t('profile_updated'))),
-              );
-            },
-            child: BetterText(text: currentAccount.t('save'), colour: currentAccount.palette.primary, weight: 600),
-          ),
-        ],
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ManageProfilePage(profile: profile),
       ),
-    );
+    ).then((_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
@@ -401,6 +327,231 @@ class _ProfilesPageState extends State<ProfilesPage> {
         },
       ),
       bottomNavigationBar: const NavigationFooter(currentPage: 'profiles'),
+    );
+  }
+}
+
+class ManageProfilePage extends StatefulWidget {
+  final UserProfile profile;
+
+  const ManageProfilePage({super.key, required this.profile});
+
+  @override
+  State<ManageProfilePage> createState() => _ManageProfilePageState();
+}
+
+class _ManageProfilePageState extends State<ManageProfilePage> {
+  late final TextEditingController _nameController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _dobController;
+
+  UserProfile get _targetProfile {
+    return currentAccount.profiles.firstWhere(
+      (p) => p.id == widget.profile.id,
+      orElse: () => widget.profile,
+    );
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    final target = _targetProfile;
+    _nameController = TextEditingController(text: target.name);
+    _phoneController = TextEditingController(text: target.phone);
+    _dobController = TextEditingController(
+      text:
+          "${target.dob.year}-${target.dob.month.toString().padLeft(2, '0')}-${target.dob.day.toString().padLeft(2, '0')}",
+    );
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _phoneController.dispose();
+    _dobController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    final nameParts = _nameController.text.trim().split(RegExp(r'\s+'));
+    if (nameParts.length < 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(currentAccount.t('error_name_two_words'))),
+      );
+      return;
+    }
+
+    final cleanPhone = _phoneController.text.replaceAll(RegExp(r'\D'), '');
+    if (cleanPhone.length != 10) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(currentAccount.t('error_phone_ten'))),
+      );
+      return;
+    }
+
+    DateTime? parsedDate;
+    try {
+      parsedDate = DateTime.parse(_dobController.text);
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(currentAccount.t('error_dob_format'))),
+      );
+      return;
+    }
+
+    final target = _targetProfile;
+    target.name = _nameController.text.trim();
+    target.phone =
+        "${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}";
+    target.dob = parsedDate;
+
+    await FirestoreService.saveProfile(currentAccount.id, target);
+    if (target.isAccountHolder) {
+      currentAccount.name = target.name;
+      await FirestoreService.saveAccount(currentAccount);
+    }
+
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(currentAccount.t('profile_updated'))),
+    );
+    Navigator.pop(context);
+  }
+
+  Future<void> _removeClinic(String clinicId) async {
+    final target = _targetProfile;
+    setState(() {
+      target.clinicIds.remove(clinicId);
+    });
+    await FirestoreService.saveProfile(currentAccount.id, target);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = currentAccount.palette;
+    final target = _targetProfile;
+    final associatedClinics = sampleClinics
+        .where((c) => target.clinicIds.contains(c.id))
+        .toList();
+
+    return Scaffold(
+      backgroundColor: palette.background,
+      appBar: AppBar(
+        backgroundColor: palette.background,
+        elevation: 0,
+        leading: IconButton(
+          icon: Icon(Icons.arrow_back, color: palette.textPrimary),
+          onPressed: () => Navigator.pop(context),
+        ),
+        title: BetterText(
+          text: "${currentAccount.t('manage')} ${target.name}",
+          size: 20.0,
+          weight: 600,
+          colour: palette.textPrimary,
+        ),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: _nameController,
+              style: TextStyle(color: palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('full_name_min')),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: _phoneController,
+              style: TextStyle(color: palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('secondary_phone')),
+            ),
+            const SizedBox(height: 12.0),
+            TextField(
+              controller: _dobController,
+              style: TextStyle(color: palette.textPrimary),
+              decoration: themedInputDecoration(labelText: currentAccount.t('dob_format')),
+            ),
+            const SizedBox(height: 24.0),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                BetterText(
+                  text: "Associated clinics (${associatedClinics.length})",
+                  size: 16.0,
+                  weight: 600,
+                  colour: palette.textPrimary,
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    currentAccount.activeProfileId = target.id;
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AddClinicPage()),
+                    ).then((_) {
+                      if (mounted) setState(() {});
+                    });
+                  },
+                  icon: Icon(Icons.add, size: 18, color: palette.primary),
+                  label: BetterText(
+                    text: "Add clinic",
+                    size: 13.0,
+                    weight: 600,
+                    colour: palette.primary,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8.0),
+            if (associatedClinics.isEmpty)
+              BetterText(
+                text: "No clinics associated with ${target.name} yet.",
+                size: 13.0,
+                colour: palette.textSecondary,
+              )
+            else
+              for (final clinic in associatedClinics)
+                Container(
+                  margin: const EdgeInsets.only(bottom: 8.0),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: palette.smoke),
+                    borderRadius: BorderRadius.circular(10.0),
+                  ),
+                  child: ListTile(
+                    title: BetterText(
+                      text: clinic.name,
+                      size: 15.0,
+                      weight: 600,
+                      colour: palette.textPrimary,
+                    ),
+                    subtitle: BetterText(
+                      text: "${clinic.specialty} · ${clinic.address}",
+                      size: 12.0,
+                      colour: palette.textSecondary,
+                    ),
+                    trailing: IconButton(
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.red),
+                      onPressed: () => _removeClinic(clinic.id),
+                    ),
+                  ),
+                ),
+            const SizedBox(height: 24.0),
+            SizedBox(
+              height: 48,
+              child: FilledButton(
+                onPressed: _saveProfile,
+                style: FilledButton.styleFrom(backgroundColor: palette.primary),
+                child: BetterText(
+                  text: currentAccount.t('save'),
+                  size: 15.0,
+                  weight: 600,
+                  colour: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

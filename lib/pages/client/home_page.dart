@@ -2,7 +2,6 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/services/firestore_service.dart';
-import 'package:clinicflow/models/clinic.dart';
 import 'package:clinicflow/pages/client/clinic_search_page.dart';
 
 class UpcomingAppointment extends StatelessWidget {
