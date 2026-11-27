@@ -1,7 +1,7 @@
+import 'package:clinicflow/models/palette.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/models/palette.dart';
 
 class ClinicSearchArea {
   final String label;

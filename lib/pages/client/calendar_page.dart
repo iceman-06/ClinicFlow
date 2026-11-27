@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 const List<String> kBookingTimeSlots = [
-  "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+  '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
 ];
 
 List<String> getAvailableBookingSlotsForDate(DateTime date) {
@@ -511,7 +511,7 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   int _offset = 0;
   int _selectedDay = DateTime.now().day;
-  String _selectedSlotTime = "09:00";
+  final String _selectedSlotTime = '09:00';
 
   @override
   Widget build(BuildContext context) {
@@ -594,7 +594,7 @@ class _CalendarPageState extends State<CalendarPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           BetterText(
-                            text: "${getMonth(dateTime: targetDate)} ${targetDate.year}",
+                            text: '${getMonth(dateTime: targetDate)} ${targetDate.year}',
                             size: 18.0,
                             weight: 600,
                           ),
@@ -636,15 +636,15 @@ class _CalendarPageState extends State<CalendarPage> {
                       const SizedBox(height: 8.0),
                       Row(
                         children: [
-                          BetterText(text: "● ", size: 12.0, colour: currentAccount.palette.primary),
+                          BetterText(text: '● ', size: 12.0, colour: currentAccount.palette.primary),
                           BetterText(text: "${currentAccount.t('booked_appointment')}   ", size: 12.0, colour: currentAccount.palette.textSecondary),
-                          BetterText(text: "○ ", size: 12.0),
+                          BetterText(text: '○ ', size: 12.0),
                           BetterText(text: currentAccount.t('open_booking_times'), size: 12.0, colour: currentAccount.palette.textSecondary),
                         ],
                       ),
                       const SizedBox(height: 20.0),
                       BetterText(
-                        text: "${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: selectedDateTime)} $_selectedDay",
+                        text: '${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: selectedDateTime)} $_selectedDay',
                         size: 20.0,
                         weight: 600,
                       ),
@@ -667,13 +667,13 @@ class _CalendarPageState extends State<CalendarPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       BetterText(
-                                        text: "${formatDateTimeTime(appt.dateTime)} • ${appt.clientName}",
+                                        text: '${formatDateTimeTime(appt.dateTime)} • ${appt.clientName}',
                                         weight: 600,
                                         size: 14.0,
                                         colour: currentAccount.palette.textPrimary,
                                       ),
                                       BetterText(
-                                        text: "${currentAccount.translateAppointmentType(appt.description)} (${appt.formattedDuration}) · ${currentAccount.translateStatus(appt.status)}",
+                                        text: '${currentAccount.translateAppointmentType(appt.description)} (${appt.formattedDuration}) · ${currentAccount.translateStatus(appt.status)}',
                                         size: 12.0,
                                         colour: currentAccount.palette.textSecondary,
                                       ),

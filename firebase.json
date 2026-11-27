@@ -13,8 +13,6 @@
           "projectId": "clinicflow-caiot",
           "configurations": {
             "android": "1:680365532030:android:75366b43ee2e6a7e1c492f",
-            "ios": "1:680365532030:ios:ec677b3e12228afd1c492f",
-            "macos": "1:680365532030:ios:ec677b3e12228afd1c492f",
             "web": "1:680365532030:web:3ed7955f931c95df1c492f",
             "windows": "1:680365532030:web:3ed7955f931c95df1c492f"
           }

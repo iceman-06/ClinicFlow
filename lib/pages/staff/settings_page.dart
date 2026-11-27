@@ -1,9 +1,9 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
-import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/pages/client/settings_page.dart' as client_settings;
+import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -143,45 +143,45 @@ class _SettingsPageState extends State<SettingsPage> {
                 children: [
                   ThemeCard(
                     title: currentAccount.t('theme_coastal'),
-                    status: currentAccount.theme == "Coastal"
+                    status: currentAccount.theme == 'Coastal'
                         ? currentAccount.t('selected')
                         : currentAccount.t('choose'),
-                    isSelected: currentAccount.theme == "Coastal",
+                    isSelected: currentAccount.theme == 'Coastal',
                     primaryColor: const Color.fromARGB(255, 16, 108, 103),
                     secondaryColor: const Color.fromARGB(255, 230, 242, 238),
                     onTap: () {
                       setState(() {
-                        currentAccount.theme = "Coastal";
+                        currentAccount.theme = 'Coastal';
                       });
                       FirestoreService.saveAccount(currentAccount);
                     },
                   ),
                   ThemeCard(
                     title: currentAccount.t('theme_dark'),
-                    status: currentAccount.theme == "Dark"
+                    status: currentAccount.theme == 'Dark'
                         ? currentAccount.t('selected')
                         : currentAccount.t('choose'),
-                    isSelected: currentAccount.theme == "Dark",
+                    isSelected: currentAccount.theme == 'Dark',
                     primaryColor: const Color.fromARGB(255, 30, 144, 255),
                     secondaryColor: const Color.fromARGB(255, 50, 50, 50),
                     onTap: () {
                       setState(() {
-                        currentAccount.theme = "Dark";
+                        currentAccount.theme = 'Dark';
                       });
                       FirestoreService.saveAccount(currentAccount);
                     },
                   ),
                   ThemeCard(
                     title: currentAccount.t('theme_clay'),
-                    status: currentAccount.theme == "Clay"
+                    status: currentAccount.theme == 'Clay'
                         ? currentAccount.t('selected')
                         : currentAccount.t('choose'),
-                    isSelected: currentAccount.theme == "Clay",
+                    isSelected: currentAccount.theme == 'Clay',
                     primaryColor: const Color.fromARGB(255, 160, 78, 57),
                     secondaryColor: const Color.fromARGB(255, 245, 230, 225),
                     onTap: () {
                       setState(() {
-                        currentAccount.theme = "Clay";
+                        currentAccount.theme = 'Clay';
                       });
                       FirestoreService.saveAccount(currentAccount);
                     },

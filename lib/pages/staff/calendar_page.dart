@@ -1,11 +1,11 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/translation.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 const List<String> kStaffBookingTimeSlots = [
-  "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00",
+  '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00',
 ];
 
 List<String> getAvailableStaffSlotsForDate(DateTime date) {
@@ -184,7 +184,7 @@ class WeekCalendarView extends StatelessWidget {
       final d = monday.add(Duration(days: i));
       final name = getWeekDay(truncate: true, dateTime: d);
       final isPast = d.isBefore(DateTime(now.year, now.month, now.day));
-      weekDays.add({"name": name, "date": d, "day": d.day, "isPast": isPast});
+      weekDays.add({'name': name, 'date': d, 'day': d.day, 'isPast': isPast});
     }
 
     return Column(
@@ -203,11 +203,11 @@ class WeekCalendarView extends StatelessWidget {
               for (var d in weekDays)
                 Expanded(
                   child: GestureDetector(
-                    onTap: () => onDaySelected(d["day"] as int),
+                    onTap: () => onDaySelected(d['day'] as int),
                     child: Column(
                       children: [
                         BetterText(
-                          text: d["name"] as String,
+                          text: d['name'] as String,
                           size: 11.0,
                           colour: currentAccount.palette.textSecondary,
                           align: TextAlign.center,
@@ -218,9 +218,9 @@ class WeekCalendarView extends StatelessWidget {
                           size: 13.0,
                           weight: 600,
                           align: TextAlign.center,
-                          colour: selectedDay == d["day"]
+                          colour: selectedDay == d['day']
                               ? currentAccount.palette.primary
-                              : (d["isPast"] == true ? currentAccount.palette.textSecondary.withAlpha(120) : currentAccount.palette.textPrimary),
+                              : (d['isPast'] == true ? currentAccount.palette.textSecondary.withAlpha(120) : currentAccount.palette.textPrimary),
                         ),
                       ],
                     ),
@@ -250,15 +250,15 @@ class WeekCalendarView extends StatelessWidget {
                         Expanded(
                           child: GestureDetector(
                             onTap: () {
-                              final slotDate = d["date"] as DateTime;
+                              final slotDate = d['date'] as DateTime;
                               final parts = hour.split(':').map(int.parse).toList();
                               final slotDateTime = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]);
                               if (slotDateTime.isBefore(DateTime.now())) return;
-                              onDaySelected(d["day"] as int);
+                              onDaySelected(d['day'] as int);
                               onSlotSelected(slotDate, hour);
                             },
                             child: Builder(builder: (context) {
-                              final slotDate = d["date"] as DateTime;
+                              final slotDate = d['date'] as DateTime;
                               final parts = hour.split(':').map(int.parse).toList();
                               final isPastSlot = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]).isBefore(DateTime.now());
                               final isBooked = appointments.any((a) =>
@@ -276,19 +276,19 @@ class WeekCalendarView extends StatelessWidget {
                                       ? currentAccount.palette.smoke.withAlpha(100)
                                       : isBooked
                                           ? currentAccount.palette.secondary
-                                          : ((selectedDay == d["day"] && selectedSlotTime == hour)
+                                          : ((selectedDay == d['day'] && selectedSlotTime == hour)
                                               ? currentAccount.palette.primary
                                               : Colors.transparent),
                                 ),
                                 alignment: Alignment.center,
                                 child: isBooked
                                     ? BetterText(
-                                        text: "●",
+                                        text: '●',
                                         size: 10.0,
                                         colour: currentAccount.palette.primary,
                                         weight: 600,
                                       )
-                                    : (selectedDay == d["day"] && selectedSlotTime == hour)
+                                    : (selectedDay == d['day'] && selectedSlotTime == hour)
                                         ? BetterText(
                                             text: formatTimeString(hour),
                                             size: 9.0,
@@ -323,8 +323,8 @@ class _CalendarPageState extends State<CalendarPage> {
   int _selectedDay = DateTime.now().day;
   bool _isWeekView = true;
   DateTime _currentWeekBase = DateTime.now();
-  String _selectedSlotTime = "09:00";
-  String _selectedApptType = "follow_up";
+  String _selectedSlotTime = '09:00';
+  String _selectedApptType = 'follow_up';
   int _selectedApptLengthMinutes = 30;
   UserProfile? _selectedClientProfile;
   final TextEditingController _bookingReasonController = TextEditingController();
@@ -366,7 +366,7 @@ class _CalendarPageState extends State<CalendarPage> {
                 BetterText(text: currentAccount.t('profile_label', replacements: [targetProfile.name]), weight: 600, size: 15.0, colour: currentAccount.palette.primary),
                 const SizedBox(height: 8.0),
                 BetterText(
-                  text: currentAccount.t('date_label', replacements: ["${getMonth(dateTime: date)} $_selectedDay, ${date.year}"]),
+                  text: currentAccount.t('date_label', replacements: ['${getMonth(dateTime: date)} $_selectedDay, ${date.year}']),
                   size: 14.0,
                   colour: currentAccount.palette.textPrimary,
                 ),
@@ -597,8 +597,8 @@ class _CalendarPageState extends State<CalendarPage> {
                         children: [
                           BetterText(
                             text: _isWeekView
-                                ? "${weekMonday.day}–${weekSunday.day} ${getMonth(dateTime: weekSunday)} ${weekSunday.year}"
-                                : "${getMonth(dateTime: targetDate)} ${targetDate.year}",
+                                ? '${weekMonday.day}–${weekSunday.day} ${getMonth(dateTime: weekSunday)} ${weekSunday.year}'
+                                : '${getMonth(dateTime: targetDate)} ${targetDate.year}',
                             size: 18.0,
                             weight: 600,
                           ),
@@ -693,10 +693,10 @@ class _CalendarPageState extends State<CalendarPage> {
                       const SizedBox(height: 8.0),
                       Row(
                         children: [
-                          BetterText(text: "● ", size: 12.0, colour: currentAccount.palette.primary),
+                          BetterText(text: '● ', size: 12.0, colour: currentAccount.palette.primary),
                           BetterText(text: "${currentAccount.t('booked_appointment')}   ", size: 12.0, colour: currentAccount.palette.textSecondary),
                           BetterText(
-                            text: "○ ",
+                            text: '○ ',
                             size: 12.0,
                             colour: currentAccount.palette.textSecondary,
                           ),
@@ -709,7 +709,7 @@ class _CalendarPageState extends State<CalendarPage> {
                       ),
                       const SizedBox(height: 20.0),
                       BetterText(
-                        text: "${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: selectedDateTime)} $_selectedDay",
+                        text: '${getWeekDay(dateTime: selectedDateTime)}, ${getMonth(dateTime: selectedDateTime)} $_selectedDay',
                         size: 20.0,
                         weight: 600,
                       ),
@@ -732,13 +732,13 @@ class _CalendarPageState extends State<CalendarPage> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       BetterText(
-                                        text: "${formatDateTimeTime(appt.dateTime)} • ${appt.clientName}",
+                                        text: '${formatDateTimeTime(appt.dateTime)} • ${appt.clientName}',
                                         weight: 600,
                                         size: 14.0,
                                         colour: currentAccount.palette.textPrimary,
                                       ),
                                       BetterText(
-                                        text: "${currentAccount.translateAppointmentType(appt.description)} (${appt.formattedDuration}) · ${currentAccount.translateStatus(appt.status)}",
+                                        text: '${currentAccount.translateAppointmentType(appt.description)} (${appt.formattedDuration}) · ${currentAccount.translateStatus(appt.status)}',
                                         size: 12.0,
                                         colour: currentAccount.palette.textSecondary,
                                       ),
@@ -797,7 +797,7 @@ class _CalendarPageState extends State<CalendarPage> {
                                 children: [
                                   BetterText(
                                     text: availableSlots.isEmpty
-                                        ? "--"
+                                        ? '--'
                                         : formatTimeString(effectiveSlotTime),
                                     weight: 600,
                                     size: 14.0,

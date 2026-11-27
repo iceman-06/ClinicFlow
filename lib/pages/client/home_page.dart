@@ -1,8 +1,8 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
-import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/pages/client/clinic_search_page.dart';
+import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 class UpcomingAppointment extends StatelessWidget {
   final Appointment appointment;
@@ -26,9 +26,9 @@ class UpcomingAppointment extends StatelessWidget {
           children: [
             BetterText(text: currentAccount.t('patient_label', replacements: [appointment.clientName]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 8.0),
-            BetterText(text: currentAccount.t('date_label', replacements: ["${getWeekDay(dateTime: date)}, ${getMonth(dateTime: date)} ${getDay(dateTime: date)} ${date.year}"]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('date_label', replacements: ['${getWeekDay(dateTime: date)}, ${getMonth(dateTime: date)} ${getDay(dateTime: date)} ${date.year}']), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
-            BetterText(text: currentAccount.t('time_label', replacements: ["${formatDateTimeTime(date)} (${appointment.formattedDuration})"]), size: 14.0, colour: currentAccount.palette.textPrimary),
+            BetterText(text: currentAccount.t('time_label', replacements: ['${formatDateTimeTime(date)} (${appointment.formattedDuration})']), size: 14.0, colour: currentAccount.palette.textPrimary),
             const SizedBox(height: 6.0),
             BetterText(text: currentAccount.t('description_label', replacements: [currentAccount.translateAppointmentType(appointment.description)]), size: 14.0, colour: currentAccount.palette.textPrimary),
             if (appointment.reason.isNotEmpty) ...[
@@ -105,7 +105,7 @@ class UpcomingAppointment extends StatelessWidget {
                       BetterText(text: appointment.clientName, colour: currentAccount.palette.textPrimary),
                       BetterText(
                         text:
-                            "${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • ${currentAccount.translateAppointmentType(appointment.description)} • ${appointment.formattedDuration}",
+                            '${getWeekDay(truncate: true, dateTime: date)}, ${getDay(dateTime: date)} ${getMonth(truncate: true, dateTime: date)} • ${currentAccount.translateAppointmentType(appointment.description)} • ${appointment.formattedDuration}',
                         size: 11.0,
                         colour: currentAccount.palette.textSecondary,
                       ),
@@ -186,7 +186,7 @@ class _HomePageState extends State<HomePage> {
               child: Icon(Icons.qr_code_2, size: 180, color: currentAccount.palette.primary),
             ),
             const SizedBox(height: 16.0),
-            BetterText(text: "5RD3-LCTO", size: 20.0, weight: 700, colour: currentAccount.palette.textPrimary),
+            BetterText(text: '5RD3-LCTO', size: 20.0, weight: 700, colour: currentAccount.palette.textPrimary),
           ],
         ),
         actions: [
@@ -206,8 +206,8 @@ class _HomePageState extends State<HomePage> {
     String? openingDocId,
   }) {
     final endOpening = openingDate.add(const Duration(minutes: 60));
-    final dateLabel = "${getWeekDay(truncate: true, dateTime: openingDate)}, ${openingDate.day} ${getMonth(truncate: true, dateTime: openingDate)}";
-    final timeRange = "${formatDateTimeTime(openingDate)}–${formatDateTimeTime(endOpening)}";
+    final dateLabel = '${getWeekDay(truncate: true, dateTime: openingDate)}, ${openingDate.day} ${getMonth(truncate: true, dateTime: openingDate)}';
+    final timeRange = '${formatDateTimeTime(openingDate)}–${formatDateTimeTime(endOpening)}';
 
     showDialog(
       context: context,
@@ -300,7 +300,7 @@ class _HomePageState extends State<HomePage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         BetterText(
-                          text: "${getWeekDay()}, ${getMonth()} ${getDay()}",
+                          text: '${getWeekDay()}, ${getMonth()} ${getDay()}',
                           size: 22.0,
                           weight: 700,
                           colour: palette.textPrimary,
@@ -337,7 +337,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                                 BetterText(
                                   text: nextAppt != null
-                                      ? "${currentAccount.translateAppointmentType(nextAppt.description)} • $nextTimeRange"
+                                      ? '${currentAccount.translateAppointmentType(nextAppt.description)} • $nextTimeRange'
                                       : currentAccount.t('no_upcoming_booking'),
                                   colour: palette.textSecondary,
                                 ),
@@ -492,16 +492,16 @@ class _HomePageState extends State<HomePage> {
                                   children: [
                                     BetterText(text: currentAccount.t('available_opening'), weight: 600, colour: palette.textPrimary),
                                     BetterText(
-                                      text: "${getWeekDay(truncate: true, dateTime: nextOpening)}, ${nextOpening.day} ${getMonth(truncate: true, dateTime: nextOpening)} • ${formatDateTimeTime(nextOpening)}–${formatDateTimeTime(nextOpeningEnd)}",
+                                      text: '${getWeekDay(truncate: true, dateTime: nextOpening)}, ${nextOpening.day} ${getMonth(truncate: true, dateTime: nextOpening)} • ${formatDateTimeTime(nextOpening)}–${formatDateTimeTime(nextOpeningEnd)}',
                                       weight: 600,
                                       size: 18.0,
                                       colour: palette.textPrimary,
                                     ),
                                     BetterText(
                                       text: currentAccount.t(
-                                        "bring_appointment_forward",
+                                        'bring_appointment_forward',
                                         replacements: [
-                                          "${(upcoming.isNotEmpty ? upcoming.last.dateTime : nextOpening).day}",
+                                          '${(upcoming.isNotEmpty ? upcoming.last.dateTime : nextOpening).day}',
                                           getMonth(truncate: true, dateTime: upcoming.isNotEmpty ? upcoming.last.dateTime : nextOpening),
                                           currentAccount.translateAppointmentType(
                                             upcoming.isNotEmpty ? upcoming.last.description : currentAccount.t('follow_up'),

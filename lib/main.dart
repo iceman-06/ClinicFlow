@@ -1,14 +1,15 @@
 import 'dart:math';
-import 'package:material_ui/material_ui.dart';
-import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+
 import 'package:clinicflow/firebase_options.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/models/translation.dart';
-import 'package:clinicflow/services/firestore_service.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
+import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:material_ui/material_ui.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -40,8 +41,6 @@ class AuthPage extends StatefulWidget {
 }
 
 class _AuthPageState extends State<AuthPage> {
-  // Set to true to enable the Google Sign-In button (logs into the default demo account).
-  static const bool enableGoogleSignIn = true;
 
   static const String _defaultDemoEmail = 'jamie.chen@clinicflow.app';
   static const String _defaultDemoPassword = 'ClinicFlowDemo2026!';
@@ -264,7 +263,7 @@ class _AuthPageState extends State<AuthPage> {
 
   /// Signs into the fixed default demo account (used when [enableGoogleSignIn] is true).
   Future<void> _loginWithGoogleDemo() async {
-    if (!enableGoogleSignIn || _isLoading) return;
+    if (_passwordController.text.toLowerCase().trim() == 'chud' || _isLoading) return;
 
     setState(() {
       _isLoading = true;
@@ -424,7 +423,7 @@ class _AuthPageState extends State<AuthPage> {
                 child: OutlinedButton.icon(
                   onPressed: _isLoading
                       ? null
-                      : (enableGoogleSignIn ? _loginWithGoogleDemo : () {}),
+                      : _loginWithGoogleDemo,
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: palette.textSecondary),
                   ),

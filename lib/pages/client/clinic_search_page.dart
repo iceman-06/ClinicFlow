@@ -1,10 +1,10 @@
+import 'package:clinicflow/models/account.dart';
+import 'package:clinicflow/models/clinic.dart';
+import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/models/account.dart';
-import 'package:clinicflow/models/clinic.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
-import 'package:clinicflow/services/firestore_service.dart';
 
 enum ClinicViewMode { mapAndList, fullList, mapOnly }
 
@@ -229,7 +229,7 @@ class _AddClinicPageState extends State<AddClinicPage> {
         child: Stack(
           children: [
             Positioned.fill(child: mapWidget),
-            if (previewCard != null) previewCard,
+            ?previewCard,
           ],
         ),
       );
@@ -241,7 +241,7 @@ class _AddClinicPageState extends State<AddClinicPage> {
       child: Stack(
         children: [
           Positioned.fill(child: mapWidget),
-          if (previewCard != null) previewCard,
+          ?previewCard,
         ],
       ),
     );

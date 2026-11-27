@@ -67,11 +67,11 @@ class UserProfile {
     required this.dob,
     required this.phone,
     required this.primaryPhone,
-    this.notes = "",
+    this.notes = '',
     this.isAccountHolder = false,
-    this.upcomingBooking = "No upcoming booking",
-    this.bookingSubInfo = "",
-    this.lastVisit = "",
+    this.upcomingBooking = 'No upcoming booking',
+    this.bookingSubInfo = '',
+    this.lastVisit = '',
     List<String>? clinicIds,
   }) : clinicIds = clinicIds ?? [] {
     UserProfile.onCreated?.call(this);
@@ -136,13 +136,13 @@ class UserProfile {
   }
 
   String get formattedDob {
-    return currentAccount.t("dob_short", replacements: ["${dob.day} ${_getMonthName(dob.month)} ${dob.year}"]);
+    return currentAccount.t('dob_short', replacements: ['${dob.day} ${_getMonthName(dob.month)} ${dob.year}']);
   }
 
   String _getMonthName(int month) {
     const keys = [
-      "jan", "feb", "mar", "apr", "may", "jun",
-      "jul", "aug", "sep", "oct", "nov", "dec"
+      'jan', 'feb', 'mar', 'apr', 'may', 'jun',
+      'jul', 'aug', 'sep', 'oct', 'nov', 'dec'
     ];
     return currentAccount.t(keys[month - 1]);
   }
@@ -385,14 +385,14 @@ class Account {
     this.role = UserRole.patient,
     required this.profiles,
     required this.activeProfileId,
-    this.theme = "Coastal",
+    this.theme = 'Coastal',
     this.emailReminders = true,
     this.smsReminders = true,
     this.virtualCheckInEnabled = true,
     this.staffNotifications = true,
     this.automatedCheckInPrompts = true,
     this.use24HourTime = true,
-    this.privacyStatusText = "Review",
+    this.privacyStatusText = 'Review',
     this.language = AppLanguage.english,
   }) {
     Account.onCreated?.call(this);
@@ -514,7 +514,7 @@ void loadDefaultAccount() {
     dateOfBirth: DateTime(1992, 3, 12),
     role: UserRole.patient,
     activeProfileId: 'CL-1042',
-    privacyStatusText: "Review",
+    privacyStatusText: 'Review',
     profiles: [
       UserProfile(
         id: 'CL-1042',

@@ -1,15 +1,15 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:clinicflow/main.dart';
 import 'package:clinicflow/models/account.dart';
-import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 import 'package:clinicflow/pages/client/calendar_page.dart' as client_calendar;
+import 'package:clinicflow/pages/client/home_page.dart' as client_home;
 import 'package:clinicflow/pages/client/profiles_page.dart' as client_profiles;
 import 'package:clinicflow/pages/client/settings_page.dart' as client_settings;
-import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
 import 'package:clinicflow/pages/staff/calendar_page.dart' as staff_calendar;
+import 'package:clinicflow/pages/staff/home_page.dart' as staff_home;
 import 'package:clinicflow/pages/staff/profiles_page.dart' as staff_profiles;
 import 'package:clinicflow/pages/staff/settings_page.dart' as staff_settings;
-import 'package:clinicflow/main.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:material_ui/material_ui.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class BetterText extends StatelessWidget {
@@ -208,10 +208,10 @@ class NavigationFooter extends StatelessWidget {
     final bool isStaff = currentAccount.isStaff;
     final palette = currentAccount.palette;
 
-    bool isHome = currentPage == 'home';
-    bool isCalendar = currentPage == 'calendar';
-    bool isProfiles = currentPage == 'profiles';
-    bool isSettings = currentPage == 'settings';
+    final bool isHome = currentPage == 'home';
+    final bool isCalendar = currentPage == 'calendar';
+    final bool isProfiles = currentPage == 'profiles';
+    final bool isSettings = currentPage == 'settings';
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 0),
@@ -349,10 +349,10 @@ class SettingsTile extends StatelessWidget {
   Widget build(BuildContext context) {
     final bool isHighlighted = trailingText == currentAccount.t('on') ||
         trailingText == currentAccount.t('enabled') ||
-        trailingText == "On" ||
-        trailingText == "Enabled" ||
-        trailingText == "English" ||
-        trailingText == "Français" ||
+        trailingText == 'On' ||
+        trailingText == 'Enabled' ||
+        trailingText == 'English' ||
+        trailingText == 'Français' ||
         trailingText == currentAccount.t('time_12h') ||
         trailingText == currentAccount.t('time_24h');
 
@@ -472,25 +472,25 @@ String getWeekDay({bool truncate = false, DateTime? dateTime}) {
   dateTime ??= DateTime.now();
   if (truncate) {
     switch (dateTime.weekday) {
-      case 1: return currentAccount.t("mon");
-      case 2: return currentAccount.t("tue");
-      case 3: return currentAccount.t("wed");
-      case 4: return currentAccount.t("thu");
-      case 5: return currentAccount.t("fri");
-      case 6: return currentAccount.t("sat");
-      case 7: return currentAccount.t("sun");
-      default: return "Err";
+      case 1: return currentAccount.t('mon');
+      case 2: return currentAccount.t('tue');
+      case 3: return currentAccount.t('wed');
+      case 4: return currentAccount.t('thu');
+      case 5: return currentAccount.t('fri');
+      case 6: return currentAccount.t('sat');
+      case 7: return currentAccount.t('sun');
+      default: return 'Err';
     }
   } else {
     switch (dateTime.weekday) {
-      case 1: return currentAccount.t("monday");
-      case 2: return currentAccount.t("tuesday");
-      case 3: return currentAccount.t("wednesday");
-      case 4: return currentAccount.t("thursday");
-      case 5: return currentAccount.t("friday");
-      case 6: return currentAccount.t("saturday");
-      case 7: return currentAccount.t("sunday");
-      default: return "Error";
+      case 1: return currentAccount.t('monday');
+      case 2: return currentAccount.t('tuesday');
+      case 3: return currentAccount.t('wednesday');
+      case 4: return currentAccount.t('thursday');
+      case 5: return currentAccount.t('friday');
+      case 6: return currentAccount.t('saturday');
+      case 7: return currentAccount.t('sunday');
+      default: return 'Error';
     }
   }
 }
@@ -499,35 +499,35 @@ String getMonth({bool truncate = false, DateTime? dateTime}) {
   dateTime ??= DateTime.now();
   if (truncate) {
     switch (dateTime.month) {
-      case 1: return currentAccount.t("jan");
-      case 2: return currentAccount.t("feb");
-      case 3: return currentAccount.t("mar");
-      case 4: return currentAccount.t("apr");
-      case 5: return currentAccount.t("may");
-      case 6: return currentAccount.t("jun");
-      case 7: return currentAccount.t("jul");
-      case 8: return currentAccount.t("aug");
-      case 9: return currentAccount.t("sep");
-      case 10: return currentAccount.t("oct");
-      case 11: return currentAccount.t("nov");
-      case 12: return currentAccount.t("dec");
-      default: return "Err";
+      case 1: return currentAccount.t('jan');
+      case 2: return currentAccount.t('feb');
+      case 3: return currentAccount.t('mar');
+      case 4: return currentAccount.t('apr');
+      case 5: return currentAccount.t('may');
+      case 6: return currentAccount.t('jun');
+      case 7: return currentAccount.t('jul');
+      case 8: return currentAccount.t('aug');
+      case 9: return currentAccount.t('sep');
+      case 10: return currentAccount.t('oct');
+      case 11: return currentAccount.t('nov');
+      case 12: return currentAccount.t('dec');
+      default: return 'Err';
     }
   } else {
     switch (dateTime.month) {
-      case 1: return currentAccount.t("january");
-      case 2: return currentAccount.t("february");
-      case 3: return currentAccount.t("march");
-      case 4: return currentAccount.t("april");
-      case 5: return currentAccount.t("may");
-      case 6: return currentAccount.t("june");
-      case 7: return currentAccount.t("july");
-      case 8: return currentAccount.t("august");
-      case 9: return currentAccount.t("september");
-      case 10: return currentAccount.t("october");
-      case 11: return currentAccount.t("november");
-      case 12: return currentAccount.t("december");
-      default: return "Error";
+      case 1: return currentAccount.t('january');
+      case 2: return currentAccount.t('february');
+      case 3: return currentAccount.t('march');
+      case 4: return currentAccount.t('april');
+      case 5: return currentAccount.t('may');
+      case 6: return currentAccount.t('june');
+      case 7: return currentAccount.t('july');
+      case 8: return currentAccount.t('august');
+      case 9: return currentAccount.t('september');
+      case 10: return currentAccount.t('october');
+      case 11: return currentAccount.t('november');
+      case 12: return currentAccount.t('december');
+      default: return 'Error';
     }
   }
 }
@@ -535,27 +535,27 @@ String getMonth({bool truncate = false, DateTime? dateTime}) {
 String getDay({bool suffix = false, DateTime? dateTime}) {
   dateTime ??= DateTime.now();
   if (suffix) {
-    int day = dateTime.day;
+    final int day = dateTime.day;
     switch (day % 10) {
-      case 1: return "${day}st";
-      case 2: return "${day}nd";
-      case 3: return "${day}rd";
-      default: return "${day}th";
+      case 1: return '${day}st';
+      case 2: return '${day}nd';
+      case 3: return '${day}rd';
+      default: return '${day}th';
     }
   } else {
-    return "${dateTime.day}";
+    return '${dateTime.day}';
   }
 }
 
 String getTime({TimeOfDay? timeOfDay}) {
   timeOfDay ??= TimeOfDay.now();
-  final minuteStr = "${timeOfDay.minute}".padLeft(2, "0");
+  final minuteStr = '${timeOfDay.minute}'.padLeft(2, '0');
   if (currentAccount.use24HourTime) {
     return "${timeOfDay.hour.toString().padLeft(2, "0")}:$minuteStr";
   }
-  final period = timeOfDay.hour >= 12 ? "PM" : "AM";
+  final period = timeOfDay.hour >= 12 ? 'PM' : 'AM';
   final hour12 = timeOfDay.hour % 12 == 0 ? 12 : timeOfDay.hour % 12;
-  return "$hour12:$minuteStr $period";
+  return '$hour12:$minuteStr $period';
 }
 
 String formatTimeString(String hhmm) {

@@ -1,7 +1,7 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 class StaffBookingCard extends StatefulWidget {
   final Appointment appointment;
@@ -19,13 +19,13 @@ class StaffBookingCard extends StatefulWidget {
 
 class _StaffBookingCardState extends State<StaffBookingCard> {
   static const List<String> _validStatuses = [
-    "Upcoming",
-    "Confirmed",
-    "Checked in",
-    "Expected",
-    "In progress",
-    "No-show",
-    "Done",
+    'Upcoming',
+    'Confirmed',
+    'Checked in',
+    'Expected',
+    'In progress',
+    'No-show',
+    'Done',
   ];
 
   void _showStaffAppointmentPopup(BuildContext context) {
@@ -36,7 +36,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
         : formatDateTimeTime(widget.appointment.endDateTime);
     String selectedStatus = _validStatuses.contains(widget.appointment.status)
         ? widget.appointment.status
-        : "Upcoming";
+        : 'Upcoming';
 
     showDialog(
       context: context,
@@ -50,7 +50,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
             children: [
               BetterText(text: currentAccount.t('client_label', replacements: [widget.appointment.clientName]), weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 8.0),
-              BetterText(text: currentAccount.t('time_label', replacements: ["$startTime – $endTime"]), size: 14.0, colour: currentAccount.palette.textPrimary),
+              BetterText(text: currentAccount.t('time_label', replacements: ['$startTime – $endTime']), size: 14.0, colour: currentAccount.palette.textPrimary),
               const SizedBox(height: 6.0),
               BetterText(text: currentAccount.t('description_label', replacements: [currentAccount.translateAppointmentType(widget.appointment.description)]), size: 14.0, colour: currentAccount.palette.textPrimary),
               if (widget.appointment.reason.isNotEmpty) ...[
@@ -144,7 +144,7 @@ class _StaffBookingCardState extends State<StaffBookingCard> {
                   BetterText(text: widget.appointment.clientName, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
                   const SizedBox(height: 2.0),
                   BetterText(
-                    text: "${getWeekDay(truncate: true, dateTime: dt)}, ${dt.day} ${getMonth(truncate: true, dateTime: dt)} · ${currentAccount.translateAppointmentType(widget.appointment.description)} · ${widget.appointment.formattedDuration}",
+                    text: '${getWeekDay(truncate: true, dateTime: dt)}, ${dt.day} ${getMonth(truncate: true, dateTime: dt)} · ${currentAccount.translateAppointmentType(widget.appointment.description)} · ${widget.appointment.formattedDuration}',
                     size: 12.0,
                     colour: currentAccount.palette.textSecondary,
                   ),
@@ -393,7 +393,7 @@ class HomePage extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       BetterText(
-                        text: "${getWeekDay(dateTime: now)}, ${getMonth(dateTime: now)} ${getDay(dateTime: now)}",
+                        text: '${getWeekDay(dateTime: now)}, ${getMonth(dateTime: now)} ${getDay(dateTime: now)}',
                         size: 22.0,
                         weight: 700,
                         colour: currentAccount.palette.textPrimary,
@@ -440,7 +440,7 @@ class HomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 BetterText(
-                                  text: "$doneCount",
+                                  text: '$doneCount',
                                   size: 22.0,
                                   weight: 700,
                                   colour: currentAccount.palette.primary,
@@ -448,7 +448,7 @@ class HomePage extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Row(
                                   children: [
-                                    BetterText(text: "● ", colour: currentAccount.palette.primary, size: 10.0),
+                                    BetterText(text: '● ', colour: currentAccount.palette.primary, size: 10.0),
                                     BetterText(text: currentAccount.t('done'), size: 12.0, colour: currentAccount.palette.textSecondary),
                                   ],
                                 ),
@@ -458,7 +458,7 @@ class HomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 BetterText(
-                                  text: "$inProgressCount",
+                                  text: '$inProgressCount',
                                   size: 22.0,
                                   weight: 700,
                                   colour: const Color.fromARGB(255, 41, 128, 185),
@@ -466,7 +466,7 @@ class HomePage extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Row(
                                   children: [
-                                    const BetterText(text: "● ", colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
+                                    const BetterText(text: '● ', colour: Color.fromARGB(255, 41, 128, 185), size: 10.0),
                                     BetterText(text: currentAccount.t('in_progress'), size: 12.0, colour: currentAccount.palette.textSecondary),
                                   ],
                                 ),
@@ -476,7 +476,7 @@ class HomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 BetterText(
-                                  text: "$checkedInCount",
+                                  text: '$checkedInCount',
                                   size: 22.0,
                                   weight: 700,
                                   colour: currentAccount.palette.textPrimary,
@@ -484,7 +484,7 @@ class HomePage extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Row(
                                   children: [
-                                    BetterText(text: "● ", colour: currentAccount.palette.textPrimary, size: 10.0),
+                                    BetterText(text: '● ', colour: currentAccount.palette.textPrimary, size: 10.0),
                                     BetterText(text: currentAccount.t('checked_in'), size: 12.0, colour: currentAccount.palette.textSecondary),
                                   ],
                                 ),
@@ -494,7 +494,7 @@ class HomePage extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 BetterText(
-                                  text: "$noShowCount",
+                                  text: '$noShowCount',
                                   size: 22.0,
                                   weight: 700,
                                   colour: const Color.fromARGB(255, 192, 57, 43),
@@ -502,7 +502,7 @@ class HomePage extends StatelessWidget {
                                 const SizedBox(height: 2.0),
                                 Row(
                                   children: [
-                                    const BetterText(text: "● ", colour: Color.fromARGB(255, 192, 57, 43), size: 10.0),
+                                    const BetterText(text: '● ', colour: Color.fromARGB(255, 192, 57, 43), size: 10.0),
                                     BetterText(text: currentAccount.t('no_show'), size: 12.0, colour: currentAccount.palette.textSecondary),
                                   ],
                                 ),

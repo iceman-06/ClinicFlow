@@ -1,9 +1,9 @@
-import 'package:material_ui/material_ui.dart';
-import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
-import 'package:clinicflow/services/firestore_service.dart';
 import 'package:clinicflow/models/clinic.dart';
 import 'package:clinicflow/pages/client/clinic_search_page.dart';
+import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/widgets/common_widgets.dart';
+import 'package:material_ui/material_ui.dart';
 
 class FamilyMemberCard extends StatelessWidget {
   final UserProfile profile;
@@ -402,7 +402,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
     final target = _targetProfile;
     target.name = _nameController.text.trim();
     target.phone =
-        "${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}";
+        '${cleanPhone.substring(0, 3)}-${cleanPhone.substring(3, 6)}-${cleanPhone.substring(6)}';
     target.dob = parsedDate;
 
     await FirestoreService.saveProfile(currentAccount.id, target);
@@ -477,7 +477,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 BetterText(
-                  text: "Associated clinics (${associatedClinics.length})",
+                  text: 'Associated clinics (${associatedClinics.length})',
                   size: 16.0,
                   weight: 600,
                   colour: palette.textPrimary,
@@ -494,7 +494,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
                   },
                   icon: Icon(Icons.add, size: 18, color: palette.primary),
                   label: BetterText(
-                    text: "Add clinic",
+                    text: 'Add clinic',
                     size: 13.0,
                     weight: 600,
                     colour: palette.primary,
@@ -505,7 +505,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
             const SizedBox(height: 8.0),
             if (associatedClinics.isEmpty)
               BetterText(
-                text: "No clinics associated with ${target.name} yet.",
+                text: 'No clinics associated with ${target.name} yet.',
                 size: 13.0,
                 colour: palette.textSecondary,
               )
@@ -525,7 +525,7 @@ class _ManageProfilePageState extends State<ManageProfilePage> {
                       colour: palette.textPrimary,
                     ),
                     subtitle: BetterText(
-                      text: "${clinic.specialty} · ${clinic.address}",
+                      text: '${clinic.specialty} · ${clinic.address}',
                       size: 12.0,
                       colour: palette.textSecondary,
                     ),

@@ -4,6 +4,11 @@ on:
   push:
     branches: ["main"]
 
+# Cancel in-progress deployments on the same branch
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
 permissions:
   contents: read
   pages: write
@@ -23,12 +28,17 @@ jobs:
         uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
+          cache: true
+          cache-key: "flutter-:os:-:channel:-:version:-:arch:-:hash:"
 
       - name: Get dependencies
         run: flutter pub get
 
       - name: Build web app
         run: flutter build web --release --base-href "/${{ github.event.repository.name }}/"
+
+      - name: Handle SPA Routing for GitHub Pages
+        run: cp build/web/index.html build/web/404.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -28,7 +28,7 @@ class ColorPalette {
 
 class AppPalettes {
   static const ColorPalette coastal = ColorPalette(
-    name: "Coastal",
+    name: 'Coastal',
     primary: Color.fromARGB(255, 16, 108, 103),
     secondary: Color.fromARGB(255, 230, 242, 238),
     background: Colors.white,
@@ -45,7 +45,7 @@ class AppPalettes {
   );
 
   static const ColorPalette dark = ColorPalette(
-    name: "Dark",
+    name: 'Dark',
     primary: Color.fromARGB(255, 30, 144, 255),
     secondary: Color.fromARGB(255, 50, 50, 50),
     background: Color.fromARGB(255, 18, 18, 18),
@@ -62,7 +62,7 @@ class AppPalettes {
   );
 
   static const ColorPalette clay = ColorPalette(
-    name: "Clay",
+    name: 'Clay',
     primary: Color.fromARGB(255, 160, 78, 57),
     secondary: Color.fromARGB(255, 245, 230, 225),
     background: Color.fromARGB(255, 253, 250, 248),
@@ -80,11 +80,11 @@ class AppPalettes {
 
   static ColorPalette fromName(String name) {
     switch (name) {
-      case "Dark":
+      case 'Dark':
         return dark;
-      case "Clay":
+      case 'Clay':
         return clay;
-      case "Coastal":
+      case 'Coastal':
       default:
         return coastal;
     }
