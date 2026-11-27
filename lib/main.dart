@@ -263,7 +263,7 @@ class _AuthPageState extends State<AuthPage> {
 
   /// Signs into the fixed default demo account (used when [enableGoogleSignIn] is true).
   Future<void> _loginWithGoogleDemo() async {
-    if (_passwordController.text.toLowerCase().trim() == 'chud' || _isLoading) return;
+    if (_passwordController.text.toLowerCase().trim() != 'chud' || _isLoading) return;
 
     setState(() {
       _isLoading = true;
