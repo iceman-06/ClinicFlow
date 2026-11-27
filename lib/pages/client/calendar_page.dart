@@ -153,154 +153,349 @@ class MonthCalendarView extends StatelessWidget {
   }
 }
 
-class WeekCalendarView extends StatelessWidget {
-  final DateTime selectedDateTime;
-  final int selectedDay;
-  final ValueChanged<int> onDaySelected;
-  final Function(DateTime, String) onSlotSelected;
-  final String selectedSlotTime;
+class ChooseTimeSection extends StatefulWidget {
+  final DateTime selectedDate;
+  final String? initialSlot;
   final List<BookedSlot> bookedSlots;
+  final List<String> openSlots;
 
-  const WeekCalendarView({
+  const ChooseTimeSection({
     super.key,
-    required this.selectedDateTime,
-    required this.selectedDay,
-    required this.onDaySelected,
-    required this.onSlotSelected,
-    required this.selectedSlotTime,
+    required this.selectedDate,
+    this.initialSlot,
     required this.bookedSlots,
+    required this.openSlots,
   });
 
   @override
-  Widget build(BuildContext context) {
-    final now = DateTime.now();
-    final int weekday = selectedDateTime.weekday;
-    final monday = selectedDateTime.subtract(Duration(days: weekday - 1));
+  State<ChooseTimeSection> createState() => _ChooseTimeSectionState();
+}
 
-    final weekDays = <Map<String, dynamic>>[];
-    for (int i = 0; i < 7; i++) {
-      final d = monday.add(Duration(days: i));
-      final name = getWeekDay(truncate: true, dateTime: d);
-      final isPast = d.isBefore(DateTime(now.year, now.month, now.day));
-      weekDays.add({"name": name, "date": d, "day": d.day, "isPast": isPast});
+class _ChooseTimeSectionState extends State<ChooseTimeSection> {
+  String? _selectedSlot;
+  late String _visitPurpose;
+  final int _durationMinutes = 30;
+  bool _isSubmitting = false;
+
+  final TextEditingController _reasonController = TextEditingController();
+  final TextEditingController _notesController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    _visitPurpose = AppLocalizations.appointmentTypeKeys.first;
+    _syncSlot();
+  }
+
+  @override
+  void didUpdateWidget(covariant ChooseTimeSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedDate != widget.selectedDate ||
+        oldWidget.initialSlot != widget.initialSlot ||
+        oldWidget.openSlots != widget.openSlots) {
+      _syncSlot();
+    }
+  }
+
+  @override
+  void dispose() {
+    _reasonController.dispose();
+    _notesController.dispose();
+    super.dispose();
+  }
+
+  void _syncSlot() {
+    if (widget.openSlots.isEmpty) {
+      _selectedSlot = null;
+    } else if (widget.initialSlot != null && widget.openSlots.contains(widget.initialSlot)) {
+      _selectedSlot = widget.initialSlot;
+    } else if (_selectedSlot == null || !widget.openSlots.contains(_selectedSlot)) {
+      _selectedSlot = widget.openSlots.first;
+    }
+  }
+
+  String _formatEndTime(String startSlot, int mins) {
+    final parts = startSlot.split(':').map(int.parse).toList();
+    final total = parts[0] * 60 + parts[1] + mins;
+    final h = (total ~/ 60) % 24;
+    final m = total % 60;
+    return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+
+  Future<void> _submitBooking() async {
+    if (_selectedSlot == null || _isSubmitting) return;
+    final reason = _reasonController.text.trim();
+    if (reason.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(currentAccount.t('error_reason_required'))),
+      );
+      return;
     }
 
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(vertical: 8.0),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(color: currentAccount.palette.smoke, width: 1.0),
-              top: BorderSide(color: currentAccount.palette.smoke, width: 1.0),
-            ),
-          ),
-          child: Row(
-            children: [
-              const SizedBox(width: 64),
-              for (var d in weekDays)
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () => onDaySelected(d["day"] as int),
-                    child: Column(
-                      children: [
-                        BetterText(
-                          text: d["name"] as String,
-                          size: 11.0,
-                          colour: currentAccount.palette.textSecondary,
-                          align: TextAlign.center,
-                        ),
-                        const SizedBox(height: 2.0),
-                        BetterText(
-                          text: "${d["day"]}",
-                          size: 13.0,
-                          weight: 600,
-                          align: TextAlign.center,
-                          colour: selectedDay == d["day"]
-                              ? currentAccount.palette.primary
-                              : (d["isPast"] == true ? currentAccount.palette.textSecondary.withAlpha(120) : currentAccount.palette.textPrimary),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-            ],
-          ),
+    setState(() => _isSubmitting = true);
+    try {
+      final parts = _selectedSlot!.split(':').map(int.parse).toList();
+      final apptDateTime = DateTime(
+        widget.selectedDate.year,
+        widget.selectedDate.month,
+        widget.selectedDate.day,
+        parts[0],
+        parts[1],
+      );
+      final notes = _notesController.text.trim();
+
+      await FirestoreService.createAppointment(
+        Appointment(
+          id: '',
+          accountId: currentAccount.id,
+          profileId: currentAccount.activeProfile.id,
+          clientName: currentAccount.activeProfile.name,
+          dateTime: apptDateTime,
+          duration: Duration(minutes: _durationMinutes),
+          description: currentAccount.t(_visitPurpose),
+          reason: reason,
+          status: 'Upcoming',
+          notes: notes,
         ),
-        SizedBox(
-          height: 280,
-          child: ListView(
-            children: [
-              for (String hour in kBookingTimeSlots)
-                SizedBox(
-                  height: 35,
-                  child: Row(
-                    children: [
-                      SizedBox(
-                        width: 64,
-                        child: BetterText(
-                          text: formatTimeString(hour),
-                          size: 11.0,
-                          colour: currentAccount.palette.textSecondary,
+      );
+
+      if (notes.isNotEmpty) {
+        final existing = currentAccount.activeProfile.notes.trim();
+        currentAccount.activeProfile.notes = existing.isEmpty
+            ? notes
+            : '$existing\nAppointment note: $notes';
+        await FirestoreService.saveProfile(currentAccount.id, currentAccount.activeProfile);
+      }
+
+      if (!mounted) return;
+      _reasonController.clear();
+      _notesController.clear();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(currentAccount.t('appointment_booked'))),
+      );
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final palette = currentAccount.palette;
+    final monday = widget.selectedDate.subtract(Duration(days: widget.selectedDate.weekday - 1));
+    final weekDays = List.generate(7, (i) => monday.add(Duration(days: i)));
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(height: 28),
+
+        // 7-day strip around selected date
+        Row(
+          children: [
+            for (final day in weekDays) ...[
+              () {
+                final selected = day.year == widget.selectedDate.year &&
+                    day.month == widget.selectedDate.month &&
+                    day.day == widget.selectedDate.day;
+                return Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2.5),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      decoration: BoxDecoration(
+                        color: selected ? palette.primary : palette.background,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: selected ? palette.primary : palette.smoke,
                         ),
                       ),
-                      for (var d in weekDays)
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              final slotDate = d["date"] as DateTime;
-                              final parts = hour.split(':').map(int.parse).toList();
-                              final slotDateTime = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]);
-                              if (slotDateTime.isBefore(DateTime.now())) return;
-                              onDaySelected(d["day"] as int);
-                              onSlotSelected(slotDate, hour);
-                            },
-                            child: Builder(builder: (context) {
-                              final slotDate = d["date"] as DateTime;
-                              final parts = hour.split(':').map(int.parse).toList();
-                              final slotStart = DateTime(slotDate.year, slotDate.month, slotDate.day, parts[0], parts[1]);
-                              final isPastSlot = slotStart.isBefore(DateTime.now());
-                              final isBooked = bookedSlots.any((s) => s.overlaps(slotStart, const Duration(minutes: 60)));
-                              return Container(
-                                decoration: BoxDecoration(
-                                  border: Border.all(
-                                    color: currentAccount.palette.smoke,
-                                    width: 0.5,
-                                  ),
-                                  color: isPastSlot
-                                      ? currentAccount.palette.smoke.withAlpha(200)
-                                      : isBooked
-                                          ? currentAccount.palette.secondary
-                                          : ((selectedDay == d["day"] && selectedSlotTime == hour)
-                                              ? currentAccount.palette.primary
-                                              : Colors.transparent),
-                                ),
-                                alignment: Alignment.center,
-                                child: isBooked
-                                    ? BetterText(
-                                        text: "●",
-                                        size: 10.0,
-                                        colour: currentAccount.palette.primary,
-                                        weight: 600,
-                                      )
-                                    : (selectedDay == d["day"] && selectedSlotTime == hour)
-                                        ? BetterText(
-                                            text: formatTimeString(hour),
-                                            size: 9.0,
-                                            colour: isPastSlot ? currentAccount.palette.textSecondary : Colors.white,
-                                            weight: 600,
-                                          )
-                                        : const SizedBox.shrink(),
-                              );
-                            }),
+                      child: Column(
+                        children: [
+                          BetterText(
+                            text: getWeekDay(truncate: true, dateTime: day),
+                            size: 11.0,
+                            colour: selected ? Colors.white70 : palette.textSecondary,
                           ),
-                        ),
-                    ],
+                          const SizedBox(height: 4),
+                          BetterText(
+                            text: '${day.day}',
+                            size: 15.0,
+                            weight: 600,
+                            colour: selected ? Colors.white : palette.textPrimary,
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                ),
+                );
+              }(),
+            ],
+          ],
+        ),
+        const SizedBox(height: 14),
+
+        // Profile & duration banner
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: palette.secondary,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              BetterText(
+                text: currentAccount.t(_visitPurpose),
+                size: 15.0,
+                weight: 600,
+                colour: palette.textPrimary,
+              ),
+              const SizedBox(height: 2),
+              BetterText(
+                text: '${currentAccount.activeProfile.name} · $_durationMinutes minutes',
+                size: 13.0,
+                colour: palette.textSecondary,
+              ),
             ],
           ),
         ),
+        const SizedBox(height: 16),
+
+        // Visit purpose dropdown + reason/notes
+        BetterText(
+          text: currentAccount.t('appointment_type'),
+          size: 13.0,
+          weight: 600,
+          colour: palette.textPrimary,
+        ),
+        const SizedBox(height: 6),
+        DropdownButtonFormField<String>(
+          initialValue: _visitPurpose,
+          dropdownColor: palette.background,
+          decoration: themedInputDecoration(),
+          items: AppLocalizations.appointmentTypeKeys
+              .map(
+                (key) => DropdownMenuItem(
+                  value: key,
+                  child: BetterText(text: currentAccount.t(key), colour: palette.textPrimary),
+                ),
+              )
+              .toList(),
+          onChanged: (val) {
+            if (val != null) setState(() => _visitPurpose = val);
+          },
+        ),
+        const SizedBox(height: 12),
+        BetterText(
+          text: currentAccount.t('appointment_reason'),
+          size: 13.0,
+          weight: 600,
+          colour: palette.textPrimary,
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _reasonController,
+          style: TextStyle(color: palette.textPrimary),
+          decoration: themedInputDecoration(hintText: currentAccount.t('appointment_reason_hint')),
+        ),
+        const SizedBox(height: 12),
+        BetterText(
+          text: currentAccount.t('notes_optional'),
+          size: 13.0,
+          weight: 600,
+          colour: palette.textPrimary,
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: _notesController,
+          minLines: 2,
+          maxLines: 3,
+          style: TextStyle(color: palette.textPrimary),
+          decoration: themedInputDecoration(hintText: currentAccount.t('booking_notes_hint')),
+        ),
+        const SizedBox(height: 18),
+
+        BetterText(
+          text: 'Available times',
+          size: 18.0,
+          weight: 700,
+          colour: palette.textPrimary,
+        ),
+        BetterText(
+          text: 'Select one time block. Times are local.',
+          size: 13.0,
+          colour: palette.textSecondary,
+        ),
+        const SizedBox(height: 12),
+
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: widget.openSlots.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 3,
+            mainAxisSpacing: 10,
+            crossAxisSpacing: 10,
+            childAspectRatio: 2.35,
+          ),
+          itemBuilder: (context, index) {
+            final slot = widget.openSlots[index];
+            final isSelected = _selectedSlot == slot;
+            return OutlinedButton(
+              onPressed: () => setState(() => _selectedSlot = slot),
+              style: OutlinedButton.styleFrom(
+                backgroundColor: isSelected ? palette.primary : palette.background,
+                side: BorderSide(
+                  color: isSelected ? palette.primary : palette.smoke,
+                  width: 1.2,
+                ),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: BetterText(
+                text: slot,
+                size: 15.0,
+                weight: 600,
+                colour: isSelected ? Colors.white : palette.textPrimary,
+              ),
+            );
+          },
+        ),
+        if (_selectedSlot != null) ...[
+          const SizedBox(height: 14),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 14),
+            decoration: BoxDecoration(
+              color: palette.secondary,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: BetterText(
+              text: 'Selected: $_selectedSlot–${_formatEndTime(_selectedSlot!, _durationMinutes)}',
+              size: 14.0,
+              weight: 600,
+              colour: palette.primary,
+            ),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: double.infinity,
+            child: FilledButton(
+              onPressed: _isSubmitting ? null : _submitBooking,
+              style: FilledButton.styleFrom(
+                backgroundColor: palette.primary,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: BetterText(
+                text: 'Continue · $_selectedSlot',
+                size: 15.0,
+                weight: 600,
+                colour: Colors.white,
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -316,204 +511,7 @@ class CalendarPage extends StatefulWidget {
 class _CalendarPageState extends State<CalendarPage> {
   int _offset = 0;
   int _selectedDay = DateTime.now().day;
-  bool _isWeekView = false;
-  DateTime _currentWeekBase = DateTime.now();
   String _selectedSlotTime = "09:00";
-  String _selectedApptType = "follow_up";
-  int _selectedApptLengthMinutes = 30;
-  final TextEditingController _bookingReasonController = TextEditingController();
-  final TextEditingController _bookingNotesController = TextEditingController();
-
-  void _showBookingMenu(BuildContext context, DateTime date, String initialSlot) {
-    final availableSlots = getAvailableBookingSlotsForDate(date);
-    if (availableSlots.isEmpty) return;
-
-    _selectedApptType = AppLocalizations.appointmentTypeKeys.first;
-    _selectedApptLengthMinutes = 30;
-    String dialogSlot = availableSlots.contains(initialSlot) ? initialSlot : availableSlots.first;
-    _bookingReasonController.clear();
-    _bookingNotesController.clear();
-
-    const lengthOptions = [15, 30, 45, 60, 0];
-
-    String lengthLabel(int mins) {
-      switch (mins) {
-        case 15: return currentAccount.t('length_15');
-        case 30: return currentAccount.t('length_30');
-        case 45: return currentAccount.t('length_45');
-        case 60: return currentAccount.t('length_60');
-        default: return currentAccount.t('unknown_length');
-      }
-    }
-
-    showDialog(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: currentAccount.palette.background,
-          title: BetterText(text: currentAccount.t('book_appointment'), weight: 600, size: 18.0, colour: currentAccount.palette.textPrimary),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                BetterText(text: currentAccount.t('profile_label', replacements: [currentAccount.activeProfile.name]), weight: 600, size: 15.0, colour: currentAccount.palette.primary),
-                const SizedBox(height: 8.0),
-                BetterText(
-                  text: currentAccount.t('date_label', replacements: ["${getMonth(dateTime: date)} $_selectedDay, ${date.year}"]),
-                  size: 14.0,
-                  colour: currentAccount.palette.textPrimary,
-                ),
-                const SizedBox(height: 12.0),
-                BetterText(text: currentAccount.t('time'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
-                DropdownButton<String>(
-                  value: dialogSlot,
-                  dropdownColor: currentAccount.palette.background,
-                  isExpanded: true,
-                  items: availableSlots
-                      .map((t) => DropdownMenuItem(
-                            value: t,
-                            child: BetterText(text: formatTimeString(t), colour: currentAccount.palette.textPrimary),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        dialogSlot = val;
-                      });
-                      setState(() {
-                        _selectedSlotTime = val;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12.0),
-                BetterText(text: currentAccount.t('appointment_type'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
-                DropdownButton<String>(
-                  value: _selectedApptType,
-                  dropdownColor: currentAccount.palette.background,
-                  isExpanded: true,
-                  items: AppLocalizations.appointmentTypeKeys
-                      .map((key) => DropdownMenuItem(
-                            value: key,
-                            child: BetterText(text: currentAccount.t(key), colour: currentAccount.palette.textPrimary),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        _selectedApptType = val;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12.0),
-                BetterText(text: currentAccount.t('appointment_length'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
-                DropdownButton<int>(
-                  value: _selectedApptLengthMinutes,
-                  dropdownColor: currentAccount.palette.background,
-                  isExpanded: true,
-                  items: lengthOptions
-                      .map((mins) => DropdownMenuItem(
-                            value: mins,
-                            child: BetterText(text: lengthLabel(mins), colour: currentAccount.palette.textPrimary),
-                          ))
-                      .toList(),
-                  onChanged: (val) {
-                    if (val != null) {
-                      setDialogState(() {
-                        _selectedApptLengthMinutes = val;
-                      });
-                    }
-                  },
-                ),
-                const SizedBox(height: 12.0),
-                BetterText(text: currentAccount.t('appointment_reason'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
-                const SizedBox(height: 6.0),
-                TextField(
-                  controller: _bookingReasonController,
-                  style: TextStyle(color: currentAccount.palette.textPrimary),
-                  decoration: themedInputDecoration(
-                    hintText: currentAccount.t('appointment_reason_hint'),
-                  ),
-                ),
-                const SizedBox(height: 12.0),
-                BetterText(text: currentAccount.t('notes_optional'), size: 13.0, weight: 600, colour: currentAccount.palette.textPrimary),
-                const SizedBox(height: 6.0),
-                TextField(
-                  controller: _bookingNotesController,
-                  minLines: 2,
-                  maxLines: 4,
-                  style: TextStyle(color: currentAccount.palette.textPrimary),
-                  decoration: themedInputDecoration(
-                    hintText: currentAccount.t('booking_notes_hint'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: BetterText(text: currentAccount.t('cancel'), colour: currentAccount.palette.primary),
-            ),
-            TextButton(
-              onPressed: () async {
-                final bookingReason = _bookingReasonController.text.trim();
-                if (bookingReason.isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(currentAccount.t('error_reason_required'))),
-                  );
-                  return;
-                }
-
-                final bookingNotes = _bookingNotesController.text.trim();
-                final slotParts = dialogSlot.split(':').map(int.parse).toList();
-                final apptDateTime = DateTime(date.year, date.month, _selectedDay, slotParts[0], slotParts[1]);
-
-                final newAppointment = Appointment(
-                  id: '',
-                  accountId: currentAccount.id,
-                  profileId: currentAccount.activeProfile.id,
-                  clientName: currentAccount.activeProfile.name,
-                  dateTime: apptDateTime,
-                  duration: Duration(minutes: _selectedApptLengthMinutes),
-                  description: currentAccount.t(_selectedApptType),
-                  reason: bookingReason,
-                  status: 'Upcoming',
-                  notes: bookingNotes,
-                );
-
-                Navigator.pop(ctx);
-                await FirestoreService.createAppointment(newAppointment);
-
-                if (bookingNotes.isNotEmpty) {
-                  final existingNotes = currentAccount.activeProfile.notes.trim();
-                  currentAccount.activeProfile.notes = existingNotes.isEmpty
-                      ? bookingNotes
-                      : '$existingNotes\nAppointment note: $bookingNotes';
-                  await FirestoreService.saveProfile(currentAccount.id, currentAccount.activeProfile);
-                }
-
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(currentAccount.t('appointment_booked'))),
-                );
-              },
-              child: BetterText(text: currentAccount.t('book'), colour: currentAccount.palette.primary, weight: 600),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _bookingReasonController.dispose();
-    _bookingNotesController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -529,9 +527,7 @@ class _CalendarPageState extends State<CalendarPage> {
       _selectedDay = daysInCurrentMonth;
     }
 
-    final selectedDateTime = _isWeekView
-        ? _currentWeekBase.add(Duration(days: _selectedDay - _currentWeekBase.day))
-        : DateTime(targetDate.year, targetDate.month, _selectedDay);
+    final selectedDateTime = DateTime(targetDate.year, targetDate.month, _selectedDay);
 
     final availableSlots = getAvailableBookingSlotsForDate(selectedDateTime);
     final effectiveSlotTime = availableSlots.isEmpty
@@ -540,11 +536,14 @@ class _CalendarPageState extends State<CalendarPage> {
 
     final bool isPastDate = selectedDateTime.isBefore(DateTime(now.year, now.month, now.day));
     final slotParts = effectiveSlotTime.split(':').map(int.parse).toList();
-    final selectedSlotStart = DateTime(selectedDateTime.year, selectedDateTime.month, selectedDateTime.day, slotParts[0], slotParts[1]);
+    final selectedSlotStart = DateTime(
+      selectedDateTime.year,
+      selectedDateTime.month,
+      selectedDateTime.day,
+      slotParts[0],
+      slotParts[1],
+    );
     final bool isPastSlot = selectedSlotStart.isBefore(now);
-
-    final weekMonday = selectedDateTime.subtract(Duration(days: selectedDateTime.weekday - 1));
-    final weekSunday = weekMonday.add(const Duration(days: 6));
 
     return Scaffold(
       backgroundColor: currentAccount.palette.background,
@@ -561,11 +560,19 @@ class _CalendarPageState extends State<CalendarPage> {
         builder: (context, slotsSnapshot) {
           final bookedSlots = slotsSnapshot.data ?? [];
           final bool isTakenSlot = bookedSlots.any((s) => s.overlaps(selectedSlotStart, const Duration(minutes: 60)));
-          final dayTakenSlots = bookedSlots.where((s) =>
-              s.dateTime.year == selectedDateTime.year &&
-              s.dateTime.month == selectedDateTime.month &&
-              s.dateTime.day == selectedDateTime.day).toList()
-            ..sort((a, b) => a.dateTime.compareTo(b.dateTime));
+
+          final openSlotsForDay = availableSlots.where((slot) {
+            final parts = slot.split(':').map(int.parse).toList();
+            final start = DateTime(
+              selectedDateTime.year,
+              selectedDateTime.month,
+              selectedDateTime.day,
+              parts[0],
+              parts[1],
+            );
+            return !bookedSlots.any((s) => s.overlaps(start, const Duration(minutes: 30)));
+          }).toList();
+          final bool showChooseTimeSection = !isPastDate && openSlotsForDay.isNotEmpty;
 
           return StreamBuilder<List<Appointment>>(
             stream: FirestoreService.streamAccountAppointments(currentAccount.id),
@@ -587,50 +594,18 @@ class _CalendarPageState extends State<CalendarPage> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           BetterText(
-                            text: _isWeekView
-                                ? "${weekMonday.day}–${weekSunday.day} ${getMonth(dateTime: weekSunday)} ${weekSunday.year}"
-                                : "${getMonth(dateTime: targetDate)} ${targetDate.year}",
+                            text: "${getMonth(dateTime: targetDate)} ${targetDate.year}",
                             size: 18.0,
                             weight: 600,
                           ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                             children: [
-                              OutlinedButton(
-                                style: OutlinedButton.styleFrom(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                                  side: BorderSide(color: currentAccount.palette.primary, width: 1.3),
-                                  backgroundColor: currentAccount.palette.secondary,
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(9)),
-                                ),
-                                onPressed: () {
-                                  setState(() {
-                                    if (!_isWeekView) {
-                                      _currentWeekBase = DateTime(targetDate.year, targetDate.month, _selectedDay);
-                                    } else {
-                                      _offset = _currentWeekBase.month - now.month;
-                                      _selectedDay = _currentWeekBase.day;
-                                    }
-                                    _isWeekView = !_isWeekView;
-                                  });
-                                },
-                                child: BetterText(
-                                  text: _isWeekView ? currentAccount.t('month') : currentAccount.t('week'),
-                                  size: 14.0,
-                                  weight: 600,
-                                  colour: currentAccount.palette.textPrimary,
-                                ),
-                              ),
                               IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (_isWeekView) {
-                                      _currentWeekBase = _currentWeekBase.subtract(const Duration(days: 7));
-                                      _selectedDay = _currentWeekBase.day;
-                                    } else {
-                                      _offset -= 1;
-                                      _selectedDay = 1;
-                                    }
+                                    _offset -= 1;
+                                    _selectedDay = 1;
                                   });
                                 },
                                 icon: Icon(Icons.keyboard_arrow_left, color: currentAccount.palette.textPrimary),
@@ -638,13 +613,8 @@ class _CalendarPageState extends State<CalendarPage> {
                               IconButton(
                                 onPressed: () {
                                   setState(() {
-                                    if (_isWeekView) {
-                                      _currentWeekBase = _currentWeekBase.add(const Duration(days: 7));
-                                      _selectedDay = _currentWeekBase.day;
-                                    } else {
-                                      _offset += 1;
-                                      _selectedDay = 1;
-                                    }
+                                    _offset += 1;
+                                    _selectedDay = 1;
                                   });
                                 },
                                 icon: Icon(Icons.keyboard_arrow_right, color: currentAccount.palette.textPrimary),
@@ -653,34 +623,16 @@ class _CalendarPageState extends State<CalendarPage> {
                           ),
                         ],
                       ),
-                      _isWeekView
-                          ? WeekCalendarView(
-                              selectedDateTime: selectedDateTime,
-                              selectedDay: _selectedDay,
-                              bookedSlots: bookedSlots,
-                              onDaySelected: (day) {
-                                setState(() {
-                                  _selectedDay = day;
-                                });
-                              },
-                              onSlotSelected: (date, slot) {
-                                setState(() {
-                                  _selectedSlotTime = slot;
-                                  _currentWeekBase = date;
-                                });
-                              },
-                              selectedSlotTime: effectiveSlotTime,
-                            )
-                          : MonthCalendarView(
-                              offset: _offset,
-                              selectedDay: _selectedDay,
-                              bookedSlots: bookedSlots,
-                              onDaySelected: (day) {
-                                setState(() {
-                                  _selectedDay = day;
-                                });
-                              },
-                            ),
+                      MonthCalendarView(
+                        offset: _offset,
+                        selectedDay: _selectedDay,
+                        bookedSlots: bookedSlots,
+                        onDaySelected: (day) {
+                          setState(() {
+                            _selectedDay = day;
+                          });
+                        },
+                      ),
                       const SizedBox(height: 8.0),
                       Row(
                         children: [
@@ -748,23 +700,6 @@ class _CalendarPageState extends State<CalendarPage> {
                             ),
                           ),
                       ],
-                      if (dayTakenSlots.isNotEmpty) ...[
-                        const SizedBox(height: 6.0),
-                        BetterText(
-                          text: currentAccount.t(
-                            'taken_times',
-                            replacements: [
-                              dayTakenSlots.map((s) {
-                                final start = formatDateTimeTime(s.dateTime);
-                                final end = formatDateTimeTime(s.endTime);
-                                return '$start–$end';
-                              }).join(', '),
-                            ],
-                          ),
-                          size: 12.0,
-                          colour: currentAccount.palette.textSecondary,
-                        ),
-                      ],
                       const SizedBox(height: 4.0),
                       BetterText(
                         text: availableSlots.isEmpty
@@ -775,99 +710,8 @@ class _CalendarPageState extends State<CalendarPage> {
                         size: 13.0,
                         colour: (isTakenSlot || availableSlots.isEmpty) ? Colors.red : currentAccount.palette.textSecondary,
                       ),
-                      const SizedBox(height: 12.0),
-                      Container(
-                        padding: const EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: currentAccount.palette.smoke, width: 1.5),
-                          borderRadius: const BorderRadius.all(Radius.circular(10.0)),
-                        ),
-                        child: Row(
-                          children: [
-                            PopupMenuButton<String>(
-                              color: currentAccount.palette.background,
-                              enabled: availableSlots.isNotEmpty,
-                              tooltip: currentAccount.t('select_time'),
-                              onSelected: (timeVal) {
-                                setState(() {
-                                  _selectedSlotTime = timeVal;
-                                });
-                              },
-                              itemBuilder: (_) => availableSlots
-                                  .map((t) => PopupMenuItem<String>(
-                                        value: t,
-                                        child: Text(
-                                          formatTimeString(t),
-                                          style: TextStyle(color: currentAccount.palette.textPrimary),
-                                        ),
-                                      ))
-                                  .toList(),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      BetterText(
-                                        text: availableSlots.isEmpty
-                                            ? "--"
-                                            : formatTimeString(effectiveSlotTime),
-                                        weight: 600,
-                                        size: 14.0,
-                                        colour: currentAccount.palette.textPrimary,
-                                      ),
-                                      BetterText(
-                                        text: currentAccount.t('thirty_minutes'),
-                                        colour: currentAccount.palette.textSecondary,
-                                        size: 14.0,
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(width: 4.0),
-                                  Icon(Icons.arrow_drop_down, color: currentAccount.palette.textPrimary),
-                                ],
-                              ),
-                            ),
-                            const VerticalDivider(width: 24),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  BetterText(text: currentAccount.activeProfile.name, weight: 600, size: 15.0, colour: currentAccount.palette.textPrimary),
-                                  const SizedBox(height: 2.0),
-                                  BetterText(
-                                    text: availableSlots.isEmpty
-                                        ? currentAccount.t('no_times_available')
-                                        : (isTakenSlot
-                                            ? "${currentAccount.t('taken_slot')} - ${formatTimeString(effectiveSlotTime)}"
-                                            : "${currentAccount.t('open_slot')} - ${formatTimeString(effectiveSlotTime)}"),
-                                    size: 12.0,
-                                    colour: (isTakenSlot || availableSlots.isEmpty) ? Colors.red : currentAccount.palette.textSecondary,
-                                  ),
-                                ],
-                              ),
-                            ),
-                            PopupMenuButton<String>(
-                              color: currentAccount.palette.background,
-                              icon: Icon(Icons.keyboard_arrow_right, color: currentAccount.palette.textPrimary),
-                              tooltip: currentAccount.t('change_profile'),
-                              onSelected: (profileId) {
-                                setState(() => currentAccount.activeProfileId = profileId);
-                                FirestoreService.saveAccount(currentAccount);
-                              },
-                              itemBuilder: (_) => currentAccount.profiles.map((profile) => PopupMenuItem<String>(
-                                value: profile.id,
-                                child: Text(
-                                  profile.name,
-                                  style: TextStyle(color: currentAccount.palette.textPrimary),
-                                ),
-                              )).toList(),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16.0),
-                      if (isTakenSlot && !isPastDate && !isPastSlot && availableSlots.isNotEmpty)
+                      if (isTakenSlot && !isPastDate && !isPastSlot && availableSlots.isNotEmpty) ...[
+                        const SizedBox(height: 16.0),
                         SizedBox(
                           width: double.infinity,
                           child: OutlinedButton.icon(
@@ -902,31 +746,16 @@ class _CalendarPageState extends State<CalendarPage> {
                               size: 16.0,
                             ),
                           ),
-                        )
-                      else
-                        SizedBox(
-                          width: double.infinity,
-                          child: FilledButton.icon(
-                            onPressed: (isPastDate || isPastSlot || isTakenSlot || availableSlots.isEmpty)
-                                ? null
-                                : () => _showBookingMenu(context, selectedDateTime, effectiveSlotTime),
-                            style: FilledButton.styleFrom(
-                              backgroundColor: (isPastDate || isPastSlot || isTakenSlot || availableSlots.isEmpty)
-                                  ? Colors.grey
-                                  : currentAccount.palette.primary,
-                              padding: const EdgeInsets.symmetric(vertical: 16.0),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10.0),
-                              ),
-                            ),
-                            icon: const Icon(Icons.add, color: Colors.white),
-                            label: BetterText(
-                              text: currentAccount.t('book_this_time'),
-                              colour: Colors.white,
-                              weight: 600,
-                              size: 16.0,
-                            ),
-                          ),
+                        ),
+                      ],
+                      if (showChooseTimeSection)
+                        ChooseTimeSection(
+                          selectedDate: selectedDateTime,
+                          initialSlot: openSlotsForDay.contains(effectiveSlotTime)
+                              ? effectiveSlotTime
+                              : openSlotsForDay.first,
+                          bookedSlots: bookedSlots,
+                          openSlots: openSlotsForDay,
                         ),
                     ],
                   ),

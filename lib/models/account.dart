@@ -81,7 +81,7 @@ class UserProfile {
 
   static void Function(UserProfile)? onCreated;
 
- Map<String, dynamic> toMap() {
+  Map<String, dynamic> toMap() {
     return {
       'id': id,
       'accountId': accountId,
