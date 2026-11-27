@@ -78,7 +78,7 @@ class _AddClinicPageState extends State<AddClinicPage> {
   }
 
   Future<void> _openFilters() async {
-    final result = await Navigator.push>(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => FilterClinicsPage(

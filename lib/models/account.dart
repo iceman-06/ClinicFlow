@@ -57,6 +57,7 @@ class UserProfile {
   String upcomingBooking;
   String bookingSubInfo;
   String lastVisit;
+  List<String> clinicIds;
 
   UserProfile({
     required this.id,
@@ -71,9 +72,12 @@ class UserProfile {
     this.upcomingBooking = "No upcoming booking",
     this.bookingSubInfo = "",
     this.lastVisit = "",
-  }) {
+    List<String>? clinicIds,
+  }) : clinicIds = clinicIds ?? [] {
     UserProfile.onCreated?.call(this);
   }
+
+  bool hasClinic(String clinicId) => clinicIds.contains(clinicId);
 
   static void Function(UserProfile)? onCreated;
 

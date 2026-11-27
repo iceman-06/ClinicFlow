@@ -2,6 +2,8 @@ import 'package:material_ui/material_ui.dart';
 import 'package:clinicflow/widgets/common_widgets.dart';
 import 'package:clinicflow/models/account.dart';
 import 'package:clinicflow/services/firestore_service.dart';
+import 'package:clinicflow/models/clinic.dart';
+import 'package:clinicflow/pages/client/clinic_search_page.dart';
 
 class UpcomingAppointment extends StatelessWidget {
   final Appointment appointment;
@@ -586,6 +588,31 @@ class _HomePageState extends State<HomePage> {
                       );
                     },
                   ),
+                  const SizedBox(height: 16.0),
+                  OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AddClinicPage()),
+                      ).then((_) {
+                        if (mounted) setState(() {});
+                      });
+                    },
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(color: palette.primary, width: 1.5),
+                      backgroundColor: palette.secondary,
+                      padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10.0)),
+                    ),
+                    icon: Icon(Icons.add_location_alt_outlined, color: palette.primary),
+                    label: BetterText(
+                      text:
+                          'Find & add a clinic (${currentAccount.activeProfile.clinicIds.length} on ${currentAccount.activeProfile.name})',
+                      colour: palette.textPrimary,
+                      weight: 600,
+                    ),
+                  ),
+                  const SizedBox(height: 16.0),
                 ],
               ),
             ),
